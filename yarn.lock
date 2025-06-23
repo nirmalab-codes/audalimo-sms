@@ -847,7 +847,7 @@
     tslib "^2.8.1"
     xml2js "^0.6.2"
 
-"@capacitor/core@^7.4.0", "@capacitor/core@>=7.0.0":
+"@capacitor/core@^7.2.0", "@capacitor/core@^7.4.0", "@capacitor/core@>=7.0.0":
   version "7.4.0"
   resolved "https://registry.npmjs.org/@capacitor/core/-/core-7.4.0.tgz"
   integrity sha512-P6NnjoHyobZgTjynlZSn27d0SUj6j38inlNxFnKZr9qwU7/r6+0Sg2nWkGkIH/pMmXHsvGD8zVe6KUq1UncIjA==
@@ -2146,6 +2146,11 @@ caniuse-lite@^1.0.30001718:
   version "1.0.30001724"
   resolved "https://registry.npmjs.org/caniuse-lite/-/caniuse-lite-1.0.30001724.tgz"
   integrity sha512-WqJo7p0TbHDOythNTqYujmaJTvtYRZrjpP8TCvH6Vb9CYJerJNKamKzIWOM4BkQatWj9H2lYulpdAQNBe7QhNA==
+
+capacitor-sms-inbox@^1.3.0:
+  version "1.3.0"
+  resolved "https://registry.npmjs.org/capacitor-sms-inbox/-/capacitor-sms-inbox-1.3.0.tgz"
+  integrity sha512-WmrA+y9IOOjPbtc4USkOu9YZOa8BckK16WvhkCxmj9saS8GD1g902SezNk5eV+4Wg+H9gaZnxqaL+hMjkSxkxQ==
 
 caseless@~0.12.0:
   version "0.12.0"
