@@ -40,12 +40,16 @@ import '@ionic/react/css/display.css';
 
 /* import '@ionic/react/css/palettes/dark.always.css'; */
 /* import '@ionic/react/css/palettes/dark.class.css'; */
-import '@ionic/react/css/palettes/dark.system.css';
+// import '@ionic/react/css/palettes/dark.system.css';
 
 /* Theme variables */
 import './theme/variables.css';
 
-setupIonicReact();
+setupIonicReact(
+  {
+    mode: 'ios'
+  }
+);
 
 const App: React.FC = () => (
   <IonApp>
@@ -73,11 +77,11 @@ const App: React.FC = () => (
         <IonTabBar slot="bottom">
           <IonTabButton tab="sms-dashboard" href="/sms-dashboard">
             <IonIcon aria-hidden="true" icon={chatbubbles} />
-            <IonLabel>SMS Dashboard</IonLabel>
+            <IonLabel>Dashboard</IonLabel>
           </IonTabButton>
           <IonTabButton tab="webhook-monitor" href="/webhook-monitor">
             <IonIcon aria-hidden="true" icon={analytics} />
-            <IonLabel>Webhook Monitor</IonLabel>
+            <IonLabel>Messages</IonLabel>
           </IonTabButton>
           <IonTabButton tab="settings" href="/settings">
             <IonIcon aria-hidden="true" icon={settings} />

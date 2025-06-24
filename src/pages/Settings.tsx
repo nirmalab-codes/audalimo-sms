@@ -7,68 +7,87 @@ import {
   IonToolbar,
   IonCard,
   IonCardContent,
-  IonCardHeader,
-  IonCardTitle,
+  IonList,
   IonItem,
   IonLabel,
   IonToggle,
-  IonSelect,
-  IonSelectOption,
-  IonRange,
-  IonNote,
-  IonIcon,
-  IonText,
   IonButton,
+  IonIcon,
+  IonBadge,
+  IonText,
+  IonAlert,
   IonToast
 } from '@ionic/react';
-import { 
-  settings, 
-  notifications, 
-  batteryCharging,
-  colorPalette
+import {
+  settings,
+  phonePortrait,
+  checkmarkCircle,
+  refresh,
+  batteryCharging
 } from 'ionicons/icons';
+import { smsService } from '../services/sms.service';
 import './Settings.css';
 
-interface AppSettings {
-  backgroundService: boolean;
-  autoStart: boolean;
-  persistentNotification: boolean;
-  heartbeatInterval: number;
-  theme: string;
-  logRetention: number;
-}
-
 const Settings: React.FC = () => {
-  const [appSettings, setAppSettings] = useState<AppSettings>({
-    backgroundService: false,
-    autoStart: false,
-    persistentNotification: true,
-    heartbeatInterval: 5,
-    theme: 'auto',
-    logRetention: 30
-  });
+  const [backgroundServiceEnabled, setBackgroundServiceEnabled] = useState(false);
+  const [showAlert, setShowAlert] = useState(false);
+  const [alertMessage, setAlertMessage] = useState('');
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
+  const [serviceStatus, setServiceStatus] = useState<any>({});
 
   useEffect(() => {
-    // Load saved settings
-    const savedSettings = localStorage.getItem('appSettings');
-    if (savedSettings) {
-      setAppSettings(JSON.parse(savedSettings));
-    }
+    loadServiceStatus();
   }, []);
 
-  const saveSettings = () => {
-    localStorage.setItem('appSettings', JSON.stringify(appSettings));
-    setToastMessage('Settings saved');
-    setShowToast(true);
+  const loadServiceStatus = () => {
+    const status = smsService.getStatus();
+    setServiceStatus(status);
+    setBackgroundServiceEnabled(status.isListening);
   };
 
-  const updateSetting = (key: keyof AppSettings, value: any) => {
-    setAppSettings(prev => ({
-      ...prev,
-      [key]: value
-    }));
+  const handleBackgroundServiceToggle = async (enabled: boolean) => {
+    setBackgroundServiceEnabled(enabled);
+    
+    if (enabled) {
+      const success = await smsService.startListening();
+      if (!success) {
+        setBackgroundServiceEnabled(false);
+        setAlertMessage('Failed to start background service. Please check permissions and webhook configuration.');
+        setShowAlert(true);
+        return;
+      }
+      setToastMessage('Background service started');
+    } else {
+      await smsService.stopListening();
+      setToastMessage('Background service stopped');
+    }
+    
+    setShowToast(true);
+    loadServiceStatus();
+  };
+
+  const requestBatteryOptimization = () => {
+    setAlertMessage('To ensure reliable background operation:\n\n1. Go to Settings > Apps > SMS Webhook\n2. Tap "Battery"\n3. Select "Don\'t optimize"\n\nThis prevents Android from stopping the app in the background.');
+    setShowAlert(true);
+  };
+
+  const testBackgroundService = async () => {
+    try {
+      const status = smsService.getStatus();
+      let message = `Service Status:\n\n`;
+      message += `• SMS Monitoring: ${status.isListening ? '✅ Active' : '❌ Inactive'}\n`;
+      message += `• Background Mode: ${status.isBackgroundModeEnabled ? '✅ Enabled' : '❌ Disabled'}\n`;
+      message += `• Background Task: ${status.backgroundTaskActive ? '✅ Running' : '❌ Idle'}\n`;
+      message += `• Messages Processed: ${status.messageCount}\n`;
+      message += `• Webhook: ${status.hasWebhook ? '✅ Configured' : '❌ Not Set'}`;
+      
+      setAlertMessage(message);
+      setShowAlert(true);
+    } catch (error) {
+      setAlertMessage('Failed to get service status');
+      setShowAlert(true);
+    }
   };
 
   return (
@@ -78,154 +97,131 @@ const Settings: React.FC = () => {
           <IonTitle>Settings</IonTitle>
         </IonToolbar>
       </IonHeader>
-      <IonContent>
+      <IonContent fullscreen>
+
         {/* Background Service */}
         <IonCard>
-          <IonCardHeader>
-            <IonCardTitle>
-              <IonIcon icon={settings} /> Background Service
-            </IonCardTitle>
-          </IonCardHeader>
           <IonCardContent>
-            <IonItem>
-              <IonLabel>
-                <h3>Enable Background Processing</h3>
-                <p>Keep SMS monitoring active in background</p>
-              </IonLabel>
-              <IonToggle
-                checked={appSettings.backgroundService}
-                onIonChange={(e) => updateSetting('backgroundService', e.detail.checked)}
-              />
-            </IonItem>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <div>
+                <h2 style={{ margin: 0, fontSize: '1.2em', paddingBottom: '10px' }}>Background Service</h2>
+                <IonBadge color={serviceStatus.isListening ? 'success' : 'medium'}>
+                  {serviceStatus.isListening ? 'Active' : 'Inactive'}
+                </IonBadge>
+              </div>
+              <IonButton fill="clear" onClick={testBackgroundService}>
+                <IonIcon icon={refresh} />
+              </IonButton>
+            </div>
 
-            <IonItem>
-              <IonLabel>
-                <h3>Auto-start on Boot</h3>
-                <p>Start service when device boots</p>
-              </IonLabel>
-              <IonToggle
-                checked={appSettings.autoStart}
-                onIonChange={(e) => updateSetting('autoStart', e.detail.checked)}
-              />
-            </IonItem>
+            <IonList lines="none">
+              <IonItem style={{ '--padding-start': '0', '--background': 'white' }} >
+                <IonLabel>
+                  <h3>Enable SMS Monitoring</h3>
+                  <p>Keep monitoring SMS when app is in background</p>
+                </IonLabel>
+                <IonToggle slot="end"
+                  checked={backgroundServiceEnabled}
+                  onIonChange={(e) => handleBackgroundServiceToggle(e.detail.checked)}
+                />
+              </IonItem>
+            </IonList>
 
-            <IonItem>
-              <IonLabel>
-                <h3>Persistent Notification</h3>
-                <p>Show notification when service is running</p>
-              </IonLabel>
-              <IonToggle
-                checked={appSettings.persistentNotification}
-                onIonChange={(e) => updateSetting('persistentNotification', e.detail.checked)}
-              />
-            </IonItem>
-
-            <IonItem>
-              <IonLabel>
-                <h3>Heartbeat Interval</h3>
-                <p>{appSettings.heartbeatInterval} minutes</p>
-              </IonLabel>
-              <IonRange
-                min={1}
-                max={30}
-                step={1}
-                value={appSettings.heartbeatInterval}
-                onIonChange={(e) => updateSetting('heartbeatInterval', e.detail.value)}
-              />
-            </IonItem>
-
-            {appSettings.backgroundService && (
-              <IonText color="warning" style={{ padding: '12px', display: 'block' }}>
-                <IonIcon icon={batteryCharging} /> 
-                <strong> Battery Optimization:</strong> Disable battery optimization for this app in Android settings to ensure reliable background operation.
-              </IonText>
+            {serviceStatus.isListening && (
+              <div style={{ marginTop: '16px',  borderRadius: '8px', display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
+                <IonIcon icon={checkmarkCircle} style={{ fontSize: '3rem', color: 'green', height: '30px' }} />
+                  <p style={{ margin: 0, fontSize: '0.9em' }}>
+                    Background monitoring is active. SMS messages will be forwarded to your webhook using background mode.
+                  </p>
+              </div>
             )}
           </IonCardContent>
         </IonCard>
 
-        {/* Notifications */}
+        {/* Service Details */}
         <IonCard>
-          <IonCardHeader>
-            <IonCardTitle>
-              <IonIcon icon={notifications} /> Auto-Forward Rules
-            </IonCardTitle>
-          </IonCardHeader>
           <IonCardContent>
-            <IonItem>
-              <IonLabel>
-                <h3>OTP Messages</h3>
-                <p>Forward messages containing OTP keywords</p>
-              </IonLabel>
-              <IonToggle checked={true} />
-            </IonItem>
+            <h2 style={{ margin: '0 0 16px 0', fontSize: '1.2em' }}>Service Details</h2>
+            
+            <IonList lines="none">
+              <IonItem style={{ '--padding-start': '0', '--background': 'white' }}>
+                <IonIcon icon={phonePortrait} slot="start" color="primary" />
+                <IonLabel>
+                  <h3>Messages Processed</h3>
+                  <p>{serviceStatus.messageCount || 0} total</p>
+                </IonLabel>
+              </IonItem>
 
-            <IonItem>
-              <IonLabel>
-                <h3>Bank Notifications</h3>
-                <p>Forward messages from bank numbers</p>
-              </IonLabel>
-              <IonToggle checked={true} />
-            </IonItem>
+              <IonItem style={{ '--padding-start': '0', '--background': 'white' }}>
+                <IonIcon icon={settings} slot="start" color="secondary" />
+                <IonLabel>
+                  <h3>Webhook Status</h3>
+                  <p>{serviceStatus.hasWebhook ? 'Configured' : 'Not configured'}</p>
+                </IonLabel>
+                <IonBadge color={serviceStatus.hasWebhook ? 'success' : 'warning'}>
+                  {serviceStatus.hasWebhook ? 'Ready' : 'Setup Required'}
+                </IonBadge>
+              </IonItem>
 
-            <IonItem>
-              <IonLabel>
-                <h3>All Messages</h3>
-                <p>Forward all incoming SMS</p>
-              </IonLabel>
-              <IonToggle checked={false} />
-            </IonItem>
+              <IonItem style={{ '--padding-start': '0', '--background': 'white' }}>
+                <IonIcon icon={batteryCharging} slot="start" color="warning" />
+                <IonLabel>
+                  <h3>Background Mode</h3>
+                  <p>{serviceStatus.isBackgroundModeEnabled ? 'Enabled' : 'Disabled'}</p>
+                </IonLabel>
+                <IonBadge color={serviceStatus.isBackgroundModeEnabled ? 'success' : 'medium'}>
+                  {serviceStatus.isBackgroundModeEnabled ? 'Active' : 'Inactive'}
+                </IonBadge>
+              </IonItem>
+
+              <IonItem style={{ '--padding-start': '0', '--background': 'white' }}>
+                <IonIcon icon={refresh} slot="start" color="tertiary" />
+                <IonLabel>
+                  <h3>Background Task</h3>
+                  <p>{serviceStatus.backgroundTaskActive ? 'Running' : 'Idle'}</p>
+                </IonLabel>
+                <IonBadge color={serviceStatus.backgroundTaskActive ? 'success' : 'medium'}>
+                  {serviceStatus.backgroundTaskActive ? 'Active' : 'Standby'}
+                </IonBadge>
+              </IonItem>
+            </IonList>
           </IonCardContent>
         </IonCard>
 
-        {/* General Settings */}
+        {/* Battery Optimization */}
         <IonCard>
-          <IonCardHeader>
-            <IonCardTitle>
-              <IonIcon icon={colorPalette} /> General
-            </IonCardTitle>
-          </IonCardHeader>
           <IonCardContent>
-            <IonItem>
-              <IonLabel>Theme</IonLabel>
-              <IonSelect
-                value={appSettings.theme}
-                onIonChange={(e) => updateSetting('theme', e.detail.value)}
-              >
-                <IonSelectOption value="auto">Auto</IonSelectOption>
-                <IonSelectOption value="light">Light</IonSelectOption>
-                <IonSelectOption value="dark">Dark</IonSelectOption>
-              </IonSelect>
-            </IonItem>
-
-            <IonItem>
-              <IonLabel>Log Retention</IonLabel>
-              <IonSelect
-                value={appSettings.logRetention}
-                onIonChange={(e) => updateSetting('logRetention', e.detail.value)}
-              >
-                <IonSelectOption value={7}>7 days</IonSelectOption>
-                <IonSelectOption value={30}>30 days</IonSelectOption>
-                <IonSelectOption value={90}>90 days</IonSelectOption>
-              </IonSelect>
-            </IonItem>
-
-            <IonButton 
-              expand="block" 
-              onClick={saveSettings}
-              style={{ marginTop: '16px' }}
-            >
-              Save Settings
+            <h2 style={{ margin: '0 0 12px 0', fontSize: '1.2em' }}>Battery Optimization</h2>
+            <IonText color="medium">
+              <p style={{ margin: '0 0 16px 0', fontSize: '0.9em', lineHeight: '1.4' }}>
+                For reliable background operation, disable battery optimization for this app. This ensures SMS monitoring continues even when the phone is idle.
+              </p>
+            </IonText>
+            
+            <IonButton expand="block" fill="outline" onClick={requestBatteryOptimization}>
+              <IonIcon icon={batteryCharging} slot="start" />
+              Battery Settings Guide
             </IonButton>
           </IonCardContent>
         </IonCard>
 
+        {/* Alert */}
+        <IonAlert
+          isOpen={showAlert}
+          onDidDismiss={() => setShowAlert(false)}
+          header="Settings"
+          message={alertMessage}
+          buttons={['OK']}
+        />
+
+        {/* Toast */}
         <IonToast
           isOpen={showToast}
           onDidDismiss={() => setShowToast(false)}
           message={toastMessage}
           duration={2000}
-          position="top"
         />
+
       </IonContent>
     </IonPage>
   );

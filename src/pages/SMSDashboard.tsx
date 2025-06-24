@@ -9,276 +9,283 @@ import {
   IonCardContent,
   IonCardHeader,
   IonCardTitle,
+  IonCardSubtitle,
+  IonButton,
   IonItem,
   IonLabel,
   IonInput,
-  IonButton,
-  IonTextarea,
   IonBadge,
-  IonList,
-  IonAlert,
   IonToast,
-  IonGrid,
-  IonRow,
-  IonCol,
+  IonAlert,
   IonIcon,
   IonRefresher,
   IonRefresherContent,
-  IonSpinner,
-  IonChip
+  RefresherEventDetail
 } from '@ionic/react';
 import { 
-  checkmarkCircle, 
-  alertCircle, 
-  settings, 
-  refresh, 
-  send,
-  phonePortrait,
-  time,
-  person,
-  chatbubble,
-  play,
-  stop
+  phonePortrait, 
+  send, 
+  settings,
+  warning,
+  checkmarkCircle,
+  playCircle,
+  stopCircle,
+  save
 } from 'ionicons/icons';
-import { smsService, SMSMessage } from '../services/sms.service';
+import { smsService } from '../services/sms.service';
 import './SMSDashboard.css';
 
 const SMSDashboard: React.FC = () => {
+  const [isListening, setIsListening] = useState(false);
   const [webhookUrl, setWebhookUrl] = useState('');
   const [webhookSecret, setWebhookSecret] = useState('');
-  const [isListening, setIsListening] = useState(false);
-  const [showAlert, setShowAlert] = useState(false);
-  const [alertMessage, setAlertMessage] = useState('');
+  const [smsCount, setSmsCount] = useState(0);
   const [showToast, setShowToast] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
-  const [messageHistory, setMessageHistory] = useState<SMSMessage[]>([]);
-  const [serviceStatus, setServiceStatus] = useState<any>({});
-  const [allMessages, setAllMessages] = useState<SMSMessage[]>([]);
+  const [toastColor, setToastColor] = useState('success');
+  const [showAlert, setShowAlert] = useState(false);
+  const [alertMessage, setAlertMessage] = useState('');
+  const [isInitialized, setIsInitialized] = useState(false);
+  const [isForegroundServiceRunning, setIsForegroundServiceRunning] = useState(false);
 
   useEffect(() => {
-    // Load saved configuration
-    const savedUrl = localStorage.getItem('webhookUrl');
-    const savedSecret = localStorage.getItem('webhookSecret');
-    
-    if (savedUrl) setWebhookUrl(savedUrl);
-    if (savedSecret) setWebhookSecret(savedSecret);
-    
-    // Initialize service status
-    updateServiceStatus();
-    
-    // Set up periodic status updates
-    const statusInterval = setInterval(updateServiceStatus, 2000);
-    
-    return () => {
-      clearInterval(statusInterval);
-    };
+    // Load saved settings
+    const savedUrl = localStorage.getItem('webhookUrl') || '';
+    const savedSecret = localStorage.getItem('webhookSecret') || '';
+    setWebhookUrl(savedUrl);
+    setWebhookSecret(savedSecret);
+
+    // Initialize SMS service
+    initializeSMSService();
   }, []);
 
-  const updateServiceStatus = () => {
-    const status = smsService.getStatus();
-    setServiceStatus(status);
-    setIsListening(status.isListening);
-    
-    // Update message history
-    const history = smsService.getMessageHistory();
-    setMessageHistory(history);
+  const initializeSMSService = async () => {
+    try {
+      console.log('🔄 Initializing SMS service...');
+      
+      // Initialize the service
+      const initialized = await smsService.initialize();
+      setIsInitialized(initialized);
+      
+      if (initialized) {
+        // Get current status
+        const status = smsService.getStatus();
+        setIsListening(status.isListening);
+        setIsForegroundServiceRunning(status.isForegroundServiceRunning);
+        
+        // Get SMS count
+        const count = await smsService.getSMSCount();
+        setSmsCount(count);
+        
+        console.log('✅ SMS service initialized', { 
+          isListening: status.isListening, 
+          count,
+          isInitialized: status.isInitialized,
+          foregroundService: status.isForegroundServiceRunning,
+          processedMessages: status.processedMessageCount
+        });
+        
+        // Configure webhook if saved
+        if (webhookUrl) {
+          smsService.setWebhookConfig(webhookUrl, webhookSecret);
+        }
+        
+        showToastMessage('SMS service ready', 'success');
+      } else {
+        showToastMessage('Failed to initialize SMS service', 'danger');
+      }
+    } catch (error) {
+      console.error('❌ Failed to initialize SMS service:', error);
+      showToastMessage('Failed to initialize SMS service', 'danger');
+    }
   };
 
-  const handleSaveConfig = () => {
-    if (!webhookUrl.trim()) {
-      setAlertMessage('Please enter a webhook URL');
-      setShowAlert(true);
-      return;
-    }
-
-    // Save to localStorage
+  const saveWebhookConfig = () => {
+    // Save settings to localStorage
     localStorage.setItem('webhookUrl', webhookUrl);
     localStorage.setItem('webhookSecret', webhookSecret);
     
-    // Configure SMS service
+    // Configure webhook in service
     smsService.setWebhookConfig(webhookUrl, webhookSecret);
     
-    setToastMessage('Configuration saved successfully!');
-    setShowToast(true);
-    updateServiceStatus();
+    showToastMessage('Webhook configuration saved!', 'success');
   };
 
-  const handleStartListening = async () => {
+  const startListening = async () => {
     if (!webhookUrl.trim()) {
       setAlertMessage('Please configure webhook URL first');
       setShowAlert(true);
       return;
     }
 
-    setIsLoading(true);
     try {
+      console.log('🚀 Starting SMS monitoring...');
+      
+      // Save settings first
+      saveWebhookConfig();
+      
       const success = await smsService.startListening();
       if (success) {
-        setToastMessage('SMS listening started successfully!');
-        setShowToast(true);
-        updateServiceStatus();
+        setIsListening(true);
+        
+        // Update status including persistent service
+        const status = smsService.getStatus();
+        setIsForegroundServiceRunning(status.isForegroundServiceRunning);
+        
+        showToastMessage('SMS monitoring started with foreground service!', 'success');
+        
+        // Update SMS count after starting
+        const count = await smsService.getSMSCount();
+        setSmsCount(count);
       } else {
-        setAlertMessage('Failed to start SMS listening. Please check permissions.');
-        setShowAlert(true);
+        showToastMessage('Failed to start SMS monitoring', 'danger');
       }
     } catch (error) {
-      console.error('Error starting SMS listening:', error);
-      setAlertMessage('Error starting SMS listening: ' + error);
-      setShowAlert(true);
-    } finally {
-      setIsLoading(false);
+      console.error('❌ Failed to start listening:', error);
+      showToastMessage('Failed to start SMS monitoring', 'danger');
     }
   };
 
-  const handleStopListening = async () => {
-    setIsLoading(true);
+  const stopListening = async () => {
     try {
+      console.log('🛑 Stopping SMS monitoring...');
+      
       await smsService.stopListening();
-      setToastMessage('SMS listening stopped');
-      setShowToast(true);
-      updateServiceStatus();
+      setIsListening(false);
+      setIsForegroundServiceRunning(false);
+      showToastMessage('SMS monitoring and foreground service stopped', 'warning');
     } catch (error) {
-      console.error('Error stopping SMS listening:', error);
-      setAlertMessage('Error stopping SMS listening: ' + error);
-      setShowAlert(true);
-    } finally {
-      setIsLoading(false);
+      console.error('❌ Failed to stop listening:', error);
+      showToastMessage('Failed to stop SMS monitoring', 'danger');
     }
   };
 
-  const handleTestWebhook = async () => {
+  const testWebhook = async () => {
     if (!webhookUrl.trim()) {
       setAlertMessage('Please configure webhook URL first');
       setShowAlert(true);
       return;
     }
 
-    setIsLoading(true);
     try {
+      console.log('🧪 Testing webhook...');
+      
+      // Configure webhook in service first
+      smsService.setWebhookConfig(webhookUrl, webhookSecret);
+      
       const success = await smsService.testWebhook();
+      
       if (success) {
-        setToastMessage('Webhook test successful!');
-        setShowToast(true);
+        showToastMessage('Webhook test successful! ✅', 'success');
       } else {
-        setAlertMessage('Webhook test failed. Please check your URL and server.');
-        setShowAlert(true);
+        showToastMessage('Webhook test failed ❌', 'danger');
       }
     } catch (error) {
-      console.error('Webhook test error:', error);
-      setAlertMessage('Webhook test error: ' + error);
-      setShowAlert(true);
-    } finally {
-      setIsLoading(false);
+      console.error('❌ Webhook test failed:', error);
+      showToastMessage('Webhook test failed', 'danger');
     }
   };
 
-  const handleRefreshMessages = async () => {
-    setIsLoading(true);
+  const showToastMessage = (message: string, color: string) => {
+    setToastMessage(message);
+    setToastColor(color);
+    setShowToast(true);
+  };
+
+  const doRefresh = async (event: CustomEvent<RefresherEventDetail>) => {
     try {
-      const messages = await smsService.readAllSMS();
-      setAllMessages(messages);
-      setToastMessage(`Loaded ${messages.length} messages`);
-      setShowToast(true);
+      await initializeSMSService();
+      showToastMessage('Data refreshed', 'success');
     } catch (error) {
-      console.error('Error loading messages:', error);
-      setAlertMessage('Error loading messages: ' + error);
-      setShowAlert(true);
-    } finally {
-      setIsLoading(false);
+      showToastMessage('Failed to refresh data', 'danger');
     }
-  };
-
-  const handleRefresh = async (event: CustomEvent) => {
-    await handleRefreshMessages();
-    updateServiceStatus();
     event.detail.complete();
-  };
-
-  const formatTimestamp = (timestamp: number) => {
-    return new Date(timestamp).toLocaleString();
-  };
-
-  const getStatusColor = (isActive: boolean) => {
-    return isActive ? 'success' : 'medium';
-  };
-
-  const getStatusIcon = (isActive: boolean) => {
-    return isActive ? checkmarkCircle : alertCircle;
   };
 
   return (
     <IonPage>
-      <IonHeader>
+      <IonHeader translucent>
         <IonToolbar>
-          <IonTitle>SMS Dashboard</IonTitle>
+          <IonTitle>Dashboard</IonTitle>
         </IonToolbar>
       </IonHeader>
-      
+
       <IonContent fullscreen>
-        <IonRefresher slot="fixed" onIonRefresh={handleRefresh}>
+        <IonRefresher slot="fixed" onIonRefresh={doRefresh}>
           <IonRefresherContent></IonRefresherContent>
         </IonRefresher>
 
-        {/* Service Status Card */}
-        <IonCard>
+        {/* Status Card */}
+        <IonCard className="fade-in">
           <IonCardHeader>
             <IonCardTitle>
-              <IonIcon icon={settings} /> Service Status
+              <IonIcon icon={phonePortrait} style={{ marginRight: '8px' }} />
+              SMS Monitor
             </IonCardTitle>
+            <IonCardSubtitle>Real-time SMS forwarding</IonCardSubtitle>
           </IonCardHeader>
+          
           <IonCardContent>
-            <IonGrid>
-              <IonRow>
-                <IonCol size="6">
-                  <IonChip color={getStatusColor(serviceStatus.isListening)}>
-                    <IonIcon icon={getStatusIcon(serviceStatus.isListening)} />
-                    <IonLabel>
-                      {serviceStatus.isListening ? 'Listening' : 'Stopped'}
-                    </IonLabel>
-                  </IonChip>
-                </IonCol>
-                <IonCol size="6">
-                  <IonChip color={getStatusColor(serviceStatus.webhookConfigured)}>
-                    <IonIcon icon={getStatusIcon(serviceStatus.webhookConfigured)} />
-                    <IonLabel>
-                      {serviceStatus.webhookConfigured ? 'Configured' : 'Not Set'}
-                    </IonLabel>
-                  </IonChip>
-                </IonCol>
-              </IonRow>
-              <IonRow>
-                <IonCol size="6">
-                  <IonItem lines="none">
-                    <IonIcon icon={chatbubble} slot="start" />
-                    <IonLabel>
-                      <h3>Messages</h3>
-                      <p>{serviceStatus.messageCount || 0} in history</p>
-                    </IonLabel>
-                  </IonItem>
-                </IonCol>
-                <IonCol size="6">
-                  <IonItem lines="none">
-                    <IonIcon icon={phonePortrait} slot="start" />
-                    <IonLabel>
-                      <h3>Last ID</h3>
-                      <p>{serviceStatus.lastMessageId || 'None'}</p>
-                    </IonLabel>
-                  </IonItem>
-                </IonCol>
-              </IonRow>
-            </IonGrid>
+            {/* Stats Row */}
+            <div className="stats-row">
+              <div className="stats-card">
+                <div className="stats-number">{smsCount}</div>
+                <div className="stats-label">Mssg</div>
+              </div>
+              <div className="stats-card">
+                <div className="stats-number" style={{ color: isListening ? '#34C759' : '#8E8E93' }}>
+                  {isListening ? 'ON' : 'OFF'}
+                </div>
+                <div className="stats-label">Status</div>
+              </div>
+              <div className="stats-card">
+                <div className="stats-number" style={{ color: isInitialized ? '#34C759' : '#FF9500' }}>
+                  {isInitialized ? 'OK' : 'INIT'}
+                </div>
+                <div className="stats-label">Service</div>
+              </div>
+              <div className="stats-card">
+                <div className="stats-number" style={{ color: isForegroundServiceRunning ? '#34C759' : '#8E8E93' }}>
+                  {isForegroundServiceRunning ? 'VPN' : 'OFF'}
+                </div>
+                <div className="stats-label">Mode</div>
+              </div>
+            </div>
+
+            {/* Control Button */}
+            <IonButton
+              expand="block"
+              fill={isListening ? 'outline' : 'solid'}
+              color={isListening ? 'danger' : 'primary'}
+              onClick={isListening ? stopListening : startListening}
+              disabled={!isInitialized}
+              style={{ marginTop: '16px' }}
+            >
+              <IonIcon icon={isListening ? stopCircle : playCircle} slot="start" />
+              {isListening ? 'Stop Monitoring' : 'Start Monitoring'}
+            </IonButton>
+            
+            {!isInitialized && (
+              <p style={{ textAlign: 'center', color: '#FF9500', fontSize: '13px', margin: '8px 0 0 0' }}>
+                Initializing SMS service...
+              </p>
+            )}
           </IonCardContent>
         </IonCard>
 
-        {/* Webhook Configuration Card */}
-        <IonCard>
+        {/* Configuration Card */}
+        <IonCard className="fade-in">
           <IonCardHeader>
-            <IonCardTitle>Webhook Configuration</IonCardTitle>
+            <IonCardTitle>
+              <IonIcon icon={settings} style={{ marginRight: '8px' }} />
+              Configuration
+            </IonCardTitle>
+            <IonCardSubtitle>Webhook settings</IonCardSubtitle>
           </IonCardHeader>
+          
           <IonCardContent>
             <IonItem>
-              <IonLabel position="stacked">Webhook URL *</IonLabel>
+              <IonLabel position="stacked">Webhook URL</IonLabel>
               <IonInput
                 value={webhookUrl}
                 placeholder="https://your-server.com/webhook"
@@ -286,192 +293,75 @@ const SMSDashboard: React.FC = () => {
                 type="url"
               />
             </IonItem>
-            
+
             <IonItem>
-              <IonLabel position="stacked">Webhook Secret (Optional)</IonLabel>
+              <IonLabel position="stacked">Secret Key (Optional)</IonLabel>
               <IonInput
                 value={webhookSecret}
-                placeholder="your-secret-key"
+                placeholder="Your secret key"
                 onIonInput={(e) => setWebhookSecret(e.detail.value!)}
                 type="password"
               />
             </IonItem>
 
-            <div className="ion-margin-top">
-              <IonButton 
-                expand="block" 
-                onClick={handleSaveConfig}
-                disabled={isLoading}
+            <div style={{ display: 'flex', gap: '8px', marginTop: '16px' }}>
+              <IonButton
+                expand="block"
+                fill="solid"
+                color="success"
+                onClick={saveWebhookConfig}
+                disabled={!webhookUrl.trim()}
               >
-                <IonIcon icon={settings} slot="start" />
-                Save Configuration
+                <IonIcon icon={save} slot="start" />
+                Save Config
+              </IonButton>
+              
+              <IonButton
+                expand="block"
+                fill="outline"
+                onClick={testWebhook}
+                disabled={!isInitialized || !webhookUrl.trim()}
+              >
+                <IonIcon icon={send} slot="start" />
+                Test
               </IonButton>
             </div>
           </IonCardContent>
         </IonCard>
 
-        {/* Control Buttons Card */}
-        <IonCard>
-          <IonCardHeader>
-            <IonCardTitle>SMS Monitoring Control</IonCardTitle>
-          </IonCardHeader>
+        {/* Info Card */}
+        <IonCard className="fade-in">
           <IonCardContent>
-            <IonGrid>
-              <IonRow>
-                <IonCol size="6">
-                  <IonButton
-                    expand="block"
-                    color={isListening ? "medium" : "primary"}
-                    onClick={isListening ? handleStopListening : handleStartListening}
-                    disabled={isLoading}
-                  >
-                    {isLoading && <IonSpinner name="crescent" />}
-                    <IonIcon icon={isListening ? stop : play} slot="start" />
-                    {isListening ? 'Stop' : 'Start'} Listening
-                  </IonButton>
-                </IonCol>
-                <IonCol size="6">
-                  <IonButton
-                    expand="block"
-                    fill="outline"
-                    onClick={handleTestWebhook}
-                    disabled={isLoading || !webhookUrl}
-                  >
-                    {isLoading && <IonSpinner name="crescent" />}
-                    <IonIcon icon={send} slot="start" />
-                    Test Webhook
-                  </IonButton>
-                </IonCol>
-              </IonRow>
-              <IonRow>
-                <IonCol>
-                  <IonButton
-                    expand="block"
-                    fill="clear"
-                    onClick={handleRefreshMessages}
-                    disabled={isLoading}
-                  >
-                    <IonIcon icon={refresh} slot="start" />
-                    Load All Messages
-                  </IonButton>
-                </IonCol>
-              </IonRow>
-            </IonGrid>
+            <h3 style={{ margin: '0 0 12px 0', color: 'var(--ion-color-primary)', fontSize: '17px', fontWeight: '600' }}>
+              <IonIcon icon={warning} style={{ marginRight: '8px' }} />
+              How it works
+            </h3>
+            <p style={{ fontSize: '15px', lineHeight: '1.4', color: '#1C1C1E', margin: 0 }}>
+              1. Enter your webhook URL above<br/>
+              2. Save configuration first<br/>
+              3. Start SMS monitoring with VPN-like foreground service<br/>
+              4. App runs persistently like VPN - always monitoring SMS<br/>
+              5. All incoming SMS forwarded to your webhook instantly<br/>
+              6. Deduplication prevents multiple webhook calls<br/>
+              7. Perfect for OTP and notification forwarding
+            </p>
           </IonCardContent>
         </IonCard>
-
-        {/* Recent Messages Card */}
-        {messageHistory.length > 0 && (
-          <IonCard>
-            <IonCardHeader>
-              <IonCardTitle>Recent Messages ({messageHistory.length})</IonCardTitle>
-            </IonCardHeader>
-            <IonCardContent>
-              <IonList>
-                {messageHistory.slice(0, 5).map((message, index) => (
-                  <IonItem key={message.id}>
-                    <IonIcon icon={chatbubble} slot="start" color="primary" />
-                    <IonLabel>
-                      <h2>From: {message.address}</h2>
-                      <p>{message.body.length > 100 ? message.body.substring(0, 100) + '...' : message.body}</p>
-                      <p>
-                        <IonIcon icon={time} /> {formatTimestamp(message.date)}
-                      </p>
-                    </IonLabel>
-                    <IonBadge color="primary" slot="end">#{message.id}</IonBadge>
-                  </IonItem>
-                ))}
-              </IonList>
-              {messageHistory.length > 5 && (
-                <p className="ion-text-center ion-margin-top">
-                  <small>Showing 5 of {messageHistory.length} messages</small>
-                </p>
-              )}
-            </IonCardContent>
-          </IonCard>
-        )}
-
-        {/* All Messages Card */}
-        {allMessages.length > 0 && (
-          <IonCard>
-            <IonCardHeader>
-              <IonCardTitle>All SMS Messages ({allMessages.length})</IonCardTitle>
-            </IonCardHeader>
-            <IonCardContent>
-              <IonList>
-                {allMessages.slice(0, 10).map((message, index) => (
-                  <IonItem key={message.id}>
-                    <IonIcon icon={person} slot="start" color="secondary" />
-                    <IonLabel>
-                      <h2>From: {message.address}</h2>
-                      <p>{message.body.length > 150 ? message.body.substring(0, 150) + '...' : message.body}</p>
-                      <p>
-                        <IonIcon icon={time} /> {formatTimestamp(message.date)}
-                        <IonBadge color="secondary" className="ion-margin-start">
-                          Type: {message.type}
-                        </IonBadge>
-                      </p>
-                    </IonLabel>
-                    <IonBadge color="secondary" slot="end">#{message.id}</IonBadge>
-                  </IonItem>
-                ))}
-              </IonList>
-              {allMessages.length > 10 && (
-                <p className="ion-text-center ion-margin-top">
-                  <small>Showing 10 of {allMessages.length} messages</small>
-                </p>
-              )}
-            </IonCardContent>
-          </IonCard>
-        )}
-
-        {/* Instructions Card */}
-        <IonCard>
-          <IonCardHeader>
-            <IonCardTitle>How It Works</IonCardTitle>
-          </IonCardHeader>
-          <IonCardContent>
-            <IonList>
-              <IonItem>
-                <IonBadge color="primary" slot="start">1</IonBadge>
-                <IonLabel>
-                  <h3>Configure Webhook</h3>
-                  <p>Enter your webhook URL where SMS will be forwarded</p>
-                </IonLabel>
-              </IonItem>
-              <IonItem>
-                <IonBadge color="primary" slot="start">2</IonBadge>
-                <IonLabel>
-                  <h3>Start Listening</h3>
-                  <p>Begin monitoring for incoming SMS messages</p>
-                </IonLabel>
-              </IonItem>
-              <IonItem>
-                <IonBadge color="primary" slot="start">3</IonBadge>
-                <IonLabel>
-                  <h3>Automatic Forwarding</h3>
-                  <p>New SMS messages are automatically sent to your webhook</p>
-                </IonLabel>
-              </IonItem>
-            </IonList>
-          </IonCardContent>
-        </IonCard>
-
-        {/* Alerts and Toasts */}
-        <IonAlert
-          isOpen={showAlert}
-          onDidDismiss={() => setShowAlert(false)}
-          header="Alert"
-          message={alertMessage}
-          buttons={['OK']}
-        />
 
         <IonToast
           isOpen={showToast}
           onDidDismiss={() => setShowToast(false)}
           message={toastMessage}
           duration={3000}
-          position="bottom"
+          color={toastColor}
+        />
+
+        <IonAlert
+          isOpen={showAlert}
+          onDidDismiss={() => setShowAlert(false)}
+          header="Configuration Required"
+          message={alertMessage}
+          buttons={['OK']}
         />
       </IonContent>
     </IonPage>

@@ -1,1 +1,68 @@
 /* Webhook Monitor specific styles */ 
+
+/* WebhookMonitor (Messages) specific styles */
+
+.stats-row {
+  display: flex;
+  gap: 12px;
+  margin: 0 0 20px 0;
+}
+
+.stats-card {
+  flex: 1;
+  background: #FFFFFF;
+  border: 1px solid #E5E5EA;
+  border-radius: 8px;
+  padding: 16px 12px;
+  text-align: center;
+  min-height: 60px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.stats-number {
+  font-size: 22px;
+  font-weight: 600;
+  margin: 0 0 2px 0;
+  color: var(--ion-color-primary);
+  line-height: 1.2;
+}
+
+.stats-label {
+  font-size: 12px;
+  color: #8E8E93;
+  margin: 0;
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.message-item {
+  --padding-start: 16px;
+  --padding-end: 16px;
+  --padding-top: 12px;
+  --padding-bottom: 12px;
+}
+
+.message-sender {
+  font-weight: 500;
+  color: #1C1C1E;
+  font-size: 16px;
+  margin-bottom: 4px;
+}
+
+.message-content {
+  color: #1C1C1E;
+  font-size: 15px;
+  line-height: 1.4;
+  margin-bottom: 4px;
+}
+
+.message-time {
+  font-size: 13px;
+  color: #8E8E93;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+} 

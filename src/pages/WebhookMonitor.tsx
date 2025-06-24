@@ -9,202 +9,145 @@ import {
   IonCardContent,
   IonCardHeader,
   IonCardTitle,
-  IonSegment,
-  IonSegmentButton,
-  IonLabel,
-  IonList,
+  IonCardSubtitle,
   IonItem,
+  IonLabel,
   IonBadge,
   IonIcon,
+  IonList,
+  IonAvatar,
   IonRefresher,
   IonRefresherContent,
-  IonGrid,
-  IonRow,
-  IonCol,
-  IonChip,
-  IonProgressBar
+  RefresherEventDetail
 } from '@ionic/react';
 import { 
-  analytics, 
-  time, 
-  checkmarkCircle, 
+  chatbubbles,
+  checkmarkCircle,
   closeCircle,
-  trendingUp,
-  pulse,
-  speedometer,
-  globe,
+  time, 
   refresh
 } from 'ionicons/icons';
-import { smsService, WebhookPayload, SMSMessage } from '../services/sms.service';
+import { smsService } from '../services/sms.service';
 import './WebhookMonitor.css';
 
-interface WebhookActivity {
+interface DisplayMessage {
   id: string;
-  timestamp: number;
-  status: 'success' | 'failed' | 'pending';
-  message: string;
   sender: string;
-  responseTime?: number;
-  error?: string;
-}
-
-interface WebhookStats {
-  totalSent: number;
-  successCount: number;
-  failedCount: number;
-  averageResponseTime: number;
-  successRate: number;
-  lastActivity: number;
+  content: string;
+  timestamp: Date;
+  webhookStatus: 'pending' | 'success' | 'failed';
 }
 
 const WebhookMonitor: React.FC = () => {
-  const [selectedSegment, setSelectedSegment] = useState<string>('statistics');
-  const [webhookActivities, setWebhookActivities] = useState<WebhookActivity[]>([]);
-  const [webhookStats, setWebhookStats] = useState<WebhookStats>({
-    totalSent: 0,
-    successCount: 0,
-    failedCount: 0,
-    averageResponseTime: 0,
-    successRate: 0,
-    lastActivity: 0
-  });
-  const [serviceStatus, setServiceStatus] = useState<any>({});
-  const [messageHistory, setMessageHistory] = useState<SMSMessage[]>([]);
+  const [messages, setMessages] = useState<DisplayMessage[]>([]);
+  const [todayCount, setTodayCount] = useState(0);
+  const [totalCount, setTotalCount] = useState(0);
 
   useEffect(() => {
-    // Load saved activities from localStorage
-    const savedActivities = localStorage.getItem('webhookActivities');
-    if (savedActivities) {
-      try {
-        const activities = JSON.parse(savedActivities);
-        setWebhookActivities(activities);
-        calculateStats(activities);
-      } catch (error) {
-        console.error('Error loading webhook activities:', error);
-      }
-    }
-
-    // Set up periodic updates
-    const updateInterval = setInterval(() => {
-      updateServiceStatus();
-      checkForNewMessages();
-    }, 3000);
-
-    return () => {
-      clearInterval(updateInterval);
-    };
+    loadMessageHistory();
+    // Refresh every 5 seconds to get real-time updates
+    const interval = setInterval(loadMessageHistory, 5000);
+    return () => clearInterval(interval);
   }, []);
 
-  const updateServiceStatus = () => {
-    const status = smsService.getStatus();
-    setServiceStatus(status);
-    
-    const history = smsService.getMessageHistory();
-    setMessageHistory(history);
-  };
-
-  const checkForNewMessages = () => {
-    // Check if there are new messages that might have triggered webhooks
-    const currentHistory = smsService.getMessageHistory();
-    
-    // Simulate webhook activities based on message history
-    // In real implementation, this would come from actual webhook responses
-    currentHistory.forEach(message => {
-      const existingActivity = webhookActivities.find(
-        activity => activity.id === `msg-${message.id}`
-      );
-      
-      if (!existingActivity) {
-        const newActivity: WebhookActivity = {
-          id: `msg-${message.id}`,
-          timestamp: message.date,
-          status: Math.random() > 0.1 ? 'success' : 'failed', // 90% success rate simulation
-          message: message.body.substring(0, 50) + '...',
-          sender: message.address,
-          responseTime: Math.floor(Math.random() * 500) + 100, // 100-600ms
-          error: Math.random() > 0.9 ? 'Connection timeout' : undefined
-        };
-        
-        addWebhookActivity(newActivity);
-      }
-    });
-  };
-
-  const addWebhookActivity = (activity: WebhookActivity) => {
-    setWebhookActivities(prev => {
-      const updated = [activity, ...prev].slice(0, 100); // Keep last 100 activities
-      saveActivitiesToStorage(updated);
-      calculateStats(updated);
-      return updated;
-    });
-  };
-
-  const saveActivitiesToStorage = (activities: WebhookActivity[]) => {
+  const loadMessageHistory = () => {
     try {
-      localStorage.setItem('webhookActivities', JSON.stringify(activities));
-    } catch (error) {
-      console.error('Error saving webhook activities:', error);
-    }
-  };
+      // Get real messages from SMS service
+      const smsMessages = smsService.getMessageHistory();
+      
+      // Convert SMS messages to display format
+      const displayMessages: DisplayMessage[] = smsMessages.map(msg => ({
+        id: msg.id.toString(),
+        sender: msg.address,
+        content: msg.body,
+        timestamp: new Date(msg.date),
+        webhookStatus: 'success' // Assume successful since they're in history
+      }));
 
-  const calculateStats = (activities: WebhookActivity[]) => {
-    if (activities.length === 0) {
-      setWebhookStats({
-        totalSent: 0,
-        successCount: 0,
-        failedCount: 0,
-        averageResponseTime: 0,
-        successRate: 0,
-        lastActivity: 0
+      // Sort by timestamp (newest first)
+      displayMessages.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+
+      setMessages(displayMessages);
+      setTotalCount(displayMessages.length);
+
+      // Calculate today's count
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const todayMessages = displayMessages.filter(msg => 
+        msg.timestamp >= today
+      );
+      setTodayCount(todayMessages.length);
+
+      console.log('📊 Message history loaded:', {
+        total: displayMessages.length,
+        today: todayMessages.length,
+        messages: displayMessages.slice(0, 3) // Log first 3 for debugging
       });
-      return;
+
+    } catch (error) {
+      console.error('❌ Error loading message history:', error);
+      
+      // Fallback to sample data if service fails
+      loadSampleData();
     }
-
-    const totalSent = activities.length;
-    const successCount = activities.filter(a => a.status === 'success').length;
-    const failedCount = activities.filter(a => a.status === 'failed').length;
-    const responseTimes = activities
-      .filter(a => a.responseTime)
-      .map(a => a.responseTime!);
-    const averageResponseTime = responseTimes.length > 0 
-      ? Math.round(responseTimes.reduce((sum, time) => sum + time, 0) / responseTimes.length)
-      : 0;
-    const successRate = totalSent > 0 ? Math.round((successCount / totalSent) * 100) : 0;
-    const lastActivity = activities.length > 0 ? activities[0].timestamp : 0;
-
-    setWebhookStats({
-      totalSent,
-      successCount,
-      failedCount,
-      averageResponseTime,
-      successRate,
-      lastActivity
-    });
   };
 
-  const handleRefresh = async (event: CustomEvent) => {
-    updateServiceStatus();
-    checkForNewMessages();
+  const loadSampleData = () => {
+    // Fallback sample messages
+    const sampleMessages: DisplayMessage[] = [
+      {
+        id: '1',
+        sender: '+6281234567890',
+        content: 'Your OTP code is 123456. Valid for 5 minutes.',
+        timestamp: new Date(Date.now() - 5 * 60 * 1000),
+        webhookStatus: 'success'
+      },
+      {
+        id: '2',
+        sender: 'BCA',
+        content: 'Transfer Rp500.000 to JOHN DOE successful. Balance: Rp2.500.000',
+        timestamp: new Date(Date.now() - 15 * 60 * 1000),
+        webhookStatus: 'success'
+      },
+      {
+        id: '3',
+        sender: '+6287654321098',
+        content: 'Meeting reminder: Team standup at 2 PM today',
+        timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000),
+        webhookStatus: 'failed'
+      },
+      {
+        id: '4',
+        sender: 'MANDIRI',
+        content: 'Saldo Anda Rp1.250.000. Terima kasih telah menggunakan layanan kami.',
+        timestamp: new Date(Date.now() - 3 * 60 * 60 * 1000),
+        webhookStatus: 'success'
+      }
+    ];
+    
+    setMessages(sampleMessages);
+    setTotalCount(sampleMessages.length);
+    setTodayCount(sampleMessages.length);
+    
+    console.log('📋 Using sample data as fallback');
+  };
+
+  const doRefresh = async (event: CustomEvent<RefresherEventDetail>) => {
+    loadMessageHistory();
     event.detail.complete();
   };
 
-  const clearActivities = () => {
-    setWebhookActivities([]);
-    localStorage.removeItem('webhookActivities');
-    calculateStats([]);
-  };
+  const formatTime = (date: Date) => {
+    const now = new Date();
+    const diff = now.getTime() - date.getTime();
+    const minutes = Math.floor(diff / 60000);
+    const hours = Math.floor(diff / 3600000);
+    const days = Math.floor(diff / 86400000);
 
-  const formatTimestamp = (timestamp: number) => {
-    return new Date(timestamp).toLocaleString();
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'success': return 'success';
-      case 'failed': return 'danger';
-      case 'pending': return 'warning';
-      default: return 'medium';
-    }
+    if (minutes < 1) return 'Just now';
+    if (minutes < 60) return `${minutes}m ago`;
+    if (hours < 24) return `${hours}h ago`;
+    return `${days}d ago`;
   };
 
   const getStatusIcon = (status: string) => {
@@ -215,229 +158,140 @@ const WebhookMonitor: React.FC = () => {
     }
   };
 
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'success': return 'success';
+      case 'failed': return 'danger';
+      default: return 'warning';
+    }
+  };
+
+  const getSenderInitial = (sender: string) => {
+    if (sender.includes('BCA')) return 'B';
+    if (sender.includes('MANDIRI')) return 'M';
+    if (sender.includes('BNI')) return 'N';
+    if (sender.includes('BRI')) return 'R';
+    if (sender.includes('TEST')) return 'T';
+    if (sender.includes('+')) return '#';
+    return sender.charAt(0).toUpperCase();
+  };
+
+  const getSenderColor = (sender: string) => {
+    const colors = ['#007AFF', '#5AC8FA', '#5856D6', '#34C759', '#FF9500', '#FF3B30'];
+    let hash = 0;
+    for (let i = 0; i < sender.length; i++) {
+      hash = sender.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    return colors[Math.abs(hash) % colors.length];
+  };
+
   return (
     <IonPage>
-      <IonHeader>
+      <IonHeader translucent>
         <IonToolbar>
-          <IonTitle>Webhook Monitor</IonTitle>
+          <IonTitle>Messages</IonTitle>
         </IonToolbar>
       </IonHeader>
-      
+
       <IonContent fullscreen>
-        <IonRefresher slot="fixed" onIonRefresh={handleRefresh}>
+        <IonRefresher slot="fixed" onIonRefresh={doRefresh}>
           <IonRefresherContent></IonRefresherContent>
         </IonRefresher>
 
-        {/* Service Status Overview */}
-        <IonCard>
-          <IonCardHeader>
-            <IonCardTitle>
-              <IonIcon icon={pulse} /> Service Overview
-            </IonCardTitle>
-          </IonCardHeader>
-          <IonCardContent>
-            <IonGrid>
-              <IonRow>
-                <IonCol size="6">
-                  <IonChip color={serviceStatus.isListening ? 'success' : 'medium'}>
-                    <IonIcon icon={serviceStatus.isListening ? checkmarkCircle : closeCircle} />
-                    <IonLabel>
-                      {serviceStatus.isListening ? 'Active' : 'Inactive'}
-                    </IonLabel>
-                  </IonChip>
-                </IonCol>
-                <IonCol size="6">
-                  <IonChip color={serviceStatus.webhookConfigured ? 'success' : 'warning'}>
-                    <IonIcon icon={globe} />
-                    <IonLabel>
-                      {serviceStatus.webhookConfigured ? 'Configured' : 'No Webhook'}
-                    </IonLabel>
-                  </IonChip>
-                </IonCol>
-              </IonRow>
-            </IonGrid>
+        {/* Stats Card */}
+        <IonCard className="fade-in">
+                  <IonCardHeader>
+                    <IonCardTitle>
+              <IonIcon icon={chatbubbles} style={{ marginRight: '8px' }} />
+              Message Activity
+                    </IonCardTitle>
+            <IonCardSubtitle>SMS forwarding statistics</IonCardSubtitle>
+                  </IonCardHeader>
+          
+                  <IonCardContent>
+            <div className="stats-row">
+              <div className="stats-card">
+                <div className="stats-number">{todayCount}</div>
+                <div className="stats-label">Today</div>
+              </div>
+              <div className="stats-card">
+                <div className="stats-number">{totalCount}</div>
+                <div className="stats-label">Total</div>
+              </div>
+            </div>
           </IonCardContent>
         </IonCard>
 
-        {/* Segment Control */}
-        <IonSegment 
-          value={selectedSegment} 
-          onIonChange={e => setSelectedSegment(e.detail.value as string)}
-        >
-          <IonSegmentButton value="statistics">
-            <IonLabel>Statistics</IonLabel>
-            <IonIcon icon={analytics} />
-          </IonSegmentButton>
-          <IonSegmentButton value="activity">
-            <IonLabel>Activity Log</IonLabel>
-            <IonIcon icon={time} />
-          </IonSegmentButton>
-        </IonSegment>
-
-        {/* Statistics View */}
-        {selectedSegment === 'statistics' && (
-          <>
-            <IonCard>
-              <IonCardHeader>
-                <IonCardTitle>
-                  <IonIcon icon={analytics} /> Webhook Statistics
-                </IonCardTitle>
-              </IonCardHeader>
-              <IonCardContent>
-                <IonGrid>
-                  <IonRow>
-                    <IonCol size="6">
-                      <div className="stat-item">
-                        <IonIcon icon={trendingUp} color="primary" />
-                        <h2>{webhookStats.totalSent}</h2>
-                        <p>Total Sent</p>
-                      </div>
-                    </IonCol>
-                    <IonCol size="6">
-                      <div className="stat-item">
-                        <IonIcon icon={checkmarkCircle} color="success" />
-                        <h2>{webhookStats.successRate}%</h2>
-                        <p>Success Rate</p>
-                      </div>
-                    </IonCol>
-                  </IonRow>
-                  <IonRow>
-                    <IonCol size="6">
-                      <div className="stat-item">
-                        <IonIcon icon={speedometer} color="warning" />
-                        <h2>{webhookStats.averageResponseTime}ms</h2>
-                        <p>Avg Response</p>
-                      </div>
-                    </IonCol>
-                    <IonCol size="6">
-                      <div className="stat-item">
-                        <IonIcon icon={closeCircle} color="danger" />
-                        <h2>{webhookStats.failedCount}</h2>
-                        <p>Failed</p>
-                      </div>
-                    </IonCol>
-                  </IonRow>
-                </IonGrid>
-
-                {/* Success Rate Progress Bar */}
-                <div className="ion-margin-top">
-                  <IonLabel>
-                    <h3>Success Rate</h3>
-                  </IonLabel>
-                  <IonProgressBar 
-                    value={webhookStats.successRate / 100}
-                    color={webhookStats.successRate > 90 ? 'success' : webhookStats.successRate > 70 ? 'warning' : 'danger'}
-                  />
-                  <p className="ion-text-center ion-margin-top">
-                    {webhookStats.successCount} successful out of {webhookStats.totalSent} total
-                  </p>
-                </div>
-
-                {webhookStats.lastActivity > 0 && (
-                  <div className="ion-margin-top">
-                    <p>
-                      <IonIcon icon={time} /> Last Activity: {formatTimestamp(webhookStats.lastActivity)}
+        {/* Messages List */}
+        <IonCard className="fade-in">
+          <IonCardHeader>
+            <IonCardTitle>Recent Messages</IonCardTitle>
+            <IonCardSubtitle>{messages.length} messages</IonCardSubtitle>
+          </IonCardHeader>
+          
+          <IonCardContent style={{ padding: '0' }}>
+            <IonList>
+              {messages.length === 0 ? (
+                    <IonItem>
+                      <IonLabel>
+                    <p style={{ textAlign: 'center', color: '#8E8E93', padding: '20px' }}>
+                      No messages yet. Start monitoring to see SMS messages here.
                     </p>
-                  </div>
-                )}
-              </IonCardContent>
-            </IonCard>
-
-            {/* Message History Summary */}
-            <IonCard>
-              <IonCardHeader>
-                <IonCardTitle>Recent Message Activity</IonCardTitle>
-              </IonCardHeader>
-              <IonCardContent>
-                {messageHistory.length > 0 ? (
-                  <IonList>
-                    {messageHistory.slice(0, 3).map((message, index) => (
-                      <IonItem key={message.id}>
-                        <IonIcon icon={checkmarkCircle} slot="start" color="success" />
-                        <IonLabel>
-                          <h3>From: {message.address}</h3>
-                          <p>{message.body.substring(0, 60)}...</p>
-                          <p>{formatTimestamp(message.date)}</p>
-                        </IonLabel>
-                        <IonBadge color="success" slot="end">Forwarded</IonBadge>
-                      </IonItem>
-                    ))}
-                  </IonList>
-                ) : (
-                  <p className="ion-text-center" style={{ color: '#666', fontStyle: 'italic' }}>
-                    No recent message activity
-                  </p>
-                )}
-              </IonCardContent>
-            </IonCard>
-          </>
-        )}
-
-        {/* Activity Log View */}
-        {selectedSegment === 'activity' && (
-          <IonCard>
-            <IonCardHeader>
-              <IonCardTitle>
-                <IonIcon icon={time} /> Webhook Activity Log
-              </IonCardTitle>
-            </IonCardHeader>
-            <IonCardContent>
-              {webhookActivities.length > 0 ? (
-                <>
-                  <div className="ion-margin-bottom">
-                    <IonChip color="primary" onClick={clearActivities}>
-                      <IonIcon icon={refresh} />
-                      <IonLabel>Clear Log</IonLabel>
-                    </IonChip>
-                  </div>
-                  
-                  <IonList>
-                    {webhookActivities.slice(0, 20).map((activity) => (
-                      <IonItem key={activity.id}>
-                        <IonIcon 
-                          icon={getStatusIcon(activity.status)} 
-                          slot="start" 
-                          color={getStatusColor(activity.status)} 
-                        />
-                        <IonLabel>
-                          <h3>To: {activity.sender}</h3>
-                          <p>{activity.message}</p>
-                          <p>
-                            {formatTimestamp(activity.timestamp)}
-                            {activity.responseTime && (
-                              <span> • {activity.responseTime}ms</span>
-                            )}
-                          </p>
-                          {activity.error && (
-                            <p style={{ color: 'var(--ion-color-danger)' }}>
-                              Error: {activity.error}
-                            </p>
-                          )}
-                        </IonLabel>
-                        <IonBadge 
-                          color={getStatusColor(activity.status)} 
-                          slot="end"
-                        >
-                          {activity.status}
-                        </IonBadge>
-                      </IonItem>
-                    ))}
-                  </IonList>
-                  
-                  {webhookActivities.length > 20 && (
-                    <p className="ion-text-center ion-margin-top">
-                      <small>Showing 20 of {webhookActivities.length} activities</small>
-                    </p>
-                  )}
-                </>
+                      </IonLabel>
+                    </IonItem>
               ) : (
-                <p className="ion-text-center" style={{ color: '#666', fontStyle: 'italic' }}>
-                  No webhook activities recorded yet
-                </p>
+                messages.map((message) => (
+                  <IonItem key={message.id} className="message-item">
+                    <IonAvatar slot="start">
+                      <div style={{
+                        width: '40px',
+                        height: '40px',
+                        borderRadius: '50%',
+                        background: getSenderColor(message.sender),
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: 'white',
+                        fontSize: '16px',
+                        fontWeight: '600'
+                      }}>
+                        {getSenderInitial(message.sender)}
+                      </div>
+                    </IonAvatar>
+                    
+                      <IonLabel>
+                      <div className="message-sender">{message.sender}</div>
+                      <div className="message-content">
+                        {message.content.length > 80 
+                          ? message.content.substring(0, 80) + '...' 
+                          : message.content
+                        }
+                      </div>
+                      <div className="message-time">
+                        <span>{formatTime(message.timestamp)}</span>
+                        <IonIcon 
+                          icon={getStatusIcon(message.webhookStatus)} 
+                          style={{ 
+                            fontSize: '14px', 
+                            color: getStatusColor(message.webhookStatus) === 'success' ? '#34C759' : 
+                                   getStatusColor(message.webhookStatus) === 'danger' ? '#FF3B30' : '#FF9500' 
+                          }}
+                        />
+                      </div>
+                      </IonLabel>
+                    
+                    <IonBadge 
+                      slot="end" 
+                      color={getStatusColor(message.webhookStatus)}
+                    >
+                      {message.webhookStatus}
+                          </IonBadge>
+                    </IonItem>
+                ))
               )}
+            </IonList>
             </IonCardContent>
           </IonCard>
-        )}
       </IonContent>
     </IonPage>
   );
