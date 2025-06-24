@@ -1,0 +1,17 @@
+# GitHub Sponsors & Donation Configuration
+# These are supported funding model platforms
+
+github: josephvoxone # GitHub Sponsors
+patreon: # Patreon username (optional)
+open_collective: # Open Collective username (optional)
+tidelift: # Tidelift platform-name/package-name (optional)
+community_bridge: # Community Bridge project-name (optional)
+liberapay: # Liberapay username (optional)
+issuehunt: # IssueHunt username (optional)
+otechie: # Otechie username (optional)
+lfx_crowdfunding: # LFX Crowdfunding project-name (optional)
+
+# Custom donation links - Indonesian & International platforms
+custom: [
+  'https://paypal.me/josephvoxone',
+] 

@@ -1,7 +1,45 @@
 {
-  "name": "ionic-app-base",
-  "private": true,
-  "version": "0.0.0",
+  "name": "sms-webhook-app",
+  "displayName": "SMS Webhook",
+  "description": "Professional SMS to Webhook Forwarder - Real-time SMS forwarding with persistent background monitoring, deduplication, and VPN-like foreground service for Android",
+  "version": "1.0.0",
+  "author": {
+    "name": "Joseph",
+    "email": "joseph@nirmalab.com",
+    "url": "https://github.com/josephvoxone"
+  },
+  "homepage": "https://github.com/josephvoxone/audalimo-sms#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/josephvoxone/audalimo-sms.git"
+  },
+  "bugs": {
+    "url": "https://github.com/josephvoxone/audalimo-sms/issues"
+  },
+  "license": "MIT",
+  "keywords": [
+    "sms",
+    "webhook",
+    "android",
+    "ionic",
+    "capacitor",
+    "react",
+    "typescript",
+    "sms-forwarder",
+    "webhook-relay",
+    "background-service",
+    "foreground-service",
+    "real-time",
+    "automation",
+    "otp-forwarding",
+    "sms-bridge",
+    "mobile-app",
+    "cross-platform",
+    "sms-monitoring",
+    "notification-forwarding",
+    "api-integration"
+  ],
+  "private": false,
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -9,7 +47,13 @@
     "preview": "vite preview",
     "test.e2e": "cypress run",
     "test.unit": "vitest",
-    "lint": "eslint"
+    "lint": "eslint",
+    "android:build": "npx cap build android",
+    "android:run": "npx cap run android",
+    "android:sync": "npx cap sync android",
+    "android:open": "npx cap open android",
+    "assets:generate": "npx @capacitor/assets generate --android --pwa",
+    "clean": "rm -rf dist && rm -rf android/app/build"
   },
   "dependencies": {
     "@anuradev/capacitor-background-mode": "^7.2.1",
@@ -59,5 +103,17 @@
     "typescript-eslint": "^8.24.0",
     "vite": "~5.2.0",
     "vitest": "^0.34.6"
-  }
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "yarn": ">=1.22.0"
+  },
+  "browserslist": [
+    "Chrome >=60",
+    "Safari >=12",
+    "Firefox >=63",
+    "Edge >=79",
+    "Android >=7.0",
+    "iOS >=12.0"
+  ]
 }
