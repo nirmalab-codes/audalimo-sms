@@ -1,0 +1,108 @@
+name: Build and Release APK
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'  # Trigger on version tags like v1.0.0
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  build:
+    name: Build APK
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+        cache: 'yarn'
+        
+    - name: Setup Java
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '17'
+        
+    - name: Setup Android SDK
+      uses: android-actions/setup-android@v3
+      
+    - name: Install dependencies
+      run: yarn install --frozen-lockfile
+      
+    - name: Build web app
+      run: yarn build
+      
+    - name: Sync Capacitor
+      run: npx cap sync android
+      
+    - name: Make gradlew executable
+      run: chmod +x android/gradlew
+      
+    - name: Build APK
+      run: |
+        cd android
+        ./gradlew assembleRelease
+        
+    - name: Sign APK
+      uses: r0adkll/sign-android-release@v1
+      id: sign_app
+      with:
+        releaseDirectory: android/app/build/outputs/apk/release
+        signingKeyBase64: ${{ secrets.SIGNING_KEY }}
+        alias: ${{ secrets.ALIAS }}
+        keyStorePassword: ${{ secrets.KEY_STORE_PASSWORD }}
+        keyPassword: ${{ secrets.KEY_PASSWORD }}
+      env:
+        BUILD_TOOLS_VERSION: "34.0.0"
+        
+    - name: Rename APK
+      run: |
+        mv ${{steps.sign_app.outputs.signedReleaseFile}} SMS-Webhook-${{ github.ref_name }}.apk
+        
+    - name: Upload APK artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: SMS-Webhook-APK
+        path: SMS-Webhook-${{ github.ref_name }}.apk
+        
+    - name: Create Release
+      uses: softprops/action-gh-release@v1
+      if: startsWith(github.ref, 'refs/tags/')
+      with:
+        files: SMS-Webhook-${{ github.ref_name }}.apk
+        name: SMS Webhook ${{ github.ref_name }}
+        body: |
+          ## 📱 SMS Webhook App Release ${{ github.ref_name }}
+          
+          ### 🚀 What's New
+          - Latest features and improvements
+          - Bug fixes and performance optimizations
+          - Enhanced webhook forwarding capabilities
+          
+          ### 📦 Installation
+          1. Download the APK file below
+          2. Enable "Install from Unknown Sources" in Android settings
+          3. Install the APK file
+          4. Grant SMS permissions when prompted
+          
+          ### 🔧 Requirements
+          - Android 7.0+ (API 24+)
+          - SMS permission for message forwarding
+          - Internet connection for webhook calls
+          
+          ### 🔗 Links
+          - [📖 Documentation](https://github.com/josephvoxone/audalimo-sms#readme)
+          - [🐛 Report Issues](https://github.com/josephvoxone/audalimo-sms/issues)
+          - [💝 Support Development](https://github.com/josephvoxone/audalimo-sms#-support-this-project)
+          
+          ---
+          
+          **⚠️ Important**: This APK is signed and safe to install. If you encounter any security warnings, they are due to the app not being distributed through Google Play Store.
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 

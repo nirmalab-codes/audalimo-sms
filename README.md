@@ -5,8 +5,20 @@
 [![Ionic](https://img.shields.io/badge/Framework-Ionic-blue.svg)](https://ionicframework.com/)
 [![React](https://img.shields.io/badge/Frontend-React-61DAFB.svg)](https://reactjs.org/)
 [![TypeScript](https://img.shields.io/badge/Language-TypeScript-blue.svg)](https://www.typescriptlang.org/)
+[![Release](https://img.shields.io/github/v/release/josephvoxone/audalimo-sms)](https://github.com/josephvoxone/audalimo-sms/releases)
 
 > **Professional SMS to Webhook Forwarder** - Forward incoming SMS messages to your webhook endpoints instantly with persistent background monitoring, deduplication, and VPN-like foreground service.
+
+## 📱 **Download**
+
+### **Latest Release**
+[![Download APK](https://img.shields.io/badge/Download-APK-brightgreen.svg?style=for-the-badge&logo=android)](https://github.com/josephvoxone/audalimo-sms/releases/latest)
+
+**Quick Install:**
+1. Download the latest APK from [Releases](https://github.com/josephvoxone/audalimo-sms/releases)
+2. Enable "Install from Unknown Sources" in Android settings
+3. Install the APK file
+4. Grant SMS permissions when prompted
 
 ## 🚀 **Features**
 
@@ -46,7 +58,7 @@
 - **[TypeScript 5](https://www.typescriptlang.org/)** - Type-safe JavaScript development
 
 ### **Mobile Platform**
-- **[Capacitor 6](https://capacitorjs.com/)** - Native mobile app runtime
+- **[Capacitor 7](https://capacitorjs.com/)** - Native mobile app runtime
 - **[Android SDK](https://developer.android.com/)** - Native Android functionality
 - **[Cordova Plugins](https://cordova.apache.org/)** - Device API access
 
@@ -225,42 +237,15 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 If this SMS Webhook app helps your business or development workflow, consider supporting its development:
 
-### **🇮🇩 Indonesian Payment Methods**
-
-#### **💳 GoPay / OVO / DANA**
-![QR Code](https://via.placeholder.com/200x200/FF6B00/FFFFFF?text=QR+Code)
-> *Scan QR code untuk donasi via e-wallet Indonesia*
-
-#### **🏦 Bank Transfer (Indonesia)**
-- **Bank BCA**: `1234567890` (a.n. Joseph)
-- **Bank Mandiri**: `1234567890` (a.n. Joseph)
-- **Bank BNI**: `1234567890` (a.n. Joseph)
-
-#### **☕ Trakteer (Indonesian Buy Me Coffee)**
-[![Trakteer](https://img.shields.io/badge/Trakteer-Support-orange.svg)](https://trakteer.id/josephvoxone)
-
-### **🌍 International Payment Methods**
-
-#### **💰 GitHub Sponsors**
+### **💰 GitHub Sponsors**
 [![Sponsor](https://img.shields.io/badge/Sponsor-GitHub-pink.svg)](https://github.com/sponsors/josephvoxone)
 
-#### **🎯 PayPal**
-[![PayPal](https://img.shields.io/badge/Donate-PayPal-blue.svg)](https://paypal.me/josephnirmalab)
+### **🎯 PayPal**
+[![PayPal](https://img.shields.io/badge/Donate-PayPal-blue.svg)](https://paypal.me/josephvoxone)
 > Send to: `joseph@nirmalab.com`
-
-#### **☕ Buy Me a Coffee**
-[![Buy Me A Coffee](https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png)](https://www.buymeacoffee.com/josephvoxone)
 
 ### **🪙 Cryptocurrency**
 - **USDT (BSC/BEP20)**: `0x096b0fc77a87d5e1d0a1184df656b83dfb2984d5`
-- **Bitcoin (BTC)**: *Contact for address*
-- **Ethereum (ETH)**: *Contact for address*
-- **Binance Coin (BNB)**: *Use BSC address above*
-
-### **📱 Indonesian Digital Wallets**
-- **ShopeePay**: [Link ShopeePay](https://shopee.co.id/pay/josephvoxone)
-- **LinkAja**: `08123456789`
-- **Jenius**: `$josephvoxone`
 
 ## 🌟 **Star History**
 

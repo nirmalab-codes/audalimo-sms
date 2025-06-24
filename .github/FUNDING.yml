@@ -11,7 +11,7 @@ issuehunt: # IssueHunt username (optional)
 otechie: # Otechie username (optional)
 lfx_crowdfunding: # LFX Crowdfunding project-name (optional)
 
-# Custom donation links - Indonesian & International platforms
+# Custom donation links - PayPal and crypto only
 custom: [
-  'https://paypal.me/josephvoxone',
+  'https://paypal.me/josephvoxone'
 ] 
