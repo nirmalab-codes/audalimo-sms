@@ -8,13 +8,13 @@
     "email": "joseph@nirmalab.com",
     "url": "https://github.com/josephvoxone"
   },
-  "homepage": "https://github.com/josephvoxone/audalimo-sms#readme",
+  "homepage": "https://github.com/nirmalab-codes/audalimo-sms#readme",
   "repository": {
     "type": "git",
-    "url": "https://github.com/josephvoxone/audalimo-sms.git"
+    "url": "https://github.com/nirmalab-codes/audalimo-sms.git"
   },
   "bugs": {
-    "url": "https://github.com/josephvoxone/audalimo-sms/issues"
+    "url": "https://github.com/nirmalab-codes/audalimo-sms/issues"
   },
   "license": "MIT",
   "keywords": [

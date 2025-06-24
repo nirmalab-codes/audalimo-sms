@@ -68,7 +68,7 @@ git tag v2.0.0
 ## 📱 APK Distribution
 
 ### **GitHub Releases**
-- **URL**: `https://github.com/josephvoxone/audalimo-sms/releases`
+- **URL**: `https://github.com/nirmalab-codes/audalimo-sms/releases`
 - **Direct Download**: Latest release badge in README
 - **File Naming**: `SMS-Webhook-v1.0.0.apk`
 

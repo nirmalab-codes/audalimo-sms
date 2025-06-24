@@ -5,17 +5,17 @@
 [![Ionic](https://img.shields.io/badge/Framework-Ionic-blue.svg)](https://ionicframework.com/)
 [![React](https://img.shields.io/badge/Frontend-React-61DAFB.svg)](https://reactjs.org/)
 [![TypeScript](https://img.shields.io/badge/Language-TypeScript-blue.svg)](https://www.typescriptlang.org/)
-[![Release](https://img.shields.io/github/v/release/josephvoxone/audalimo-sms)](https://github.com/josephvoxone/audalimo-sms/releases)
+[![Release](https://img.shields.io/github/v/release/nirmalab-codes/audalimo-sms)](https://github.com/nirmalab-codes/audalimo-sms/releases)
 
 > **Professional SMS to Webhook Forwarder** - Forward incoming SMS messages to your webhook endpoints instantly with persistent background monitoring, deduplication, and VPN-like foreground service.
 
 ## 📱 **Download**
 
 ### **Latest Release**
-[![Download APK](https://img.shields.io/badge/Download-APK-brightgreen.svg?style=for-the-badge&logo=android)](https://github.com/josephvoxone/audalimo-sms/releases/latest)
+[![Download APK](https://img.shields.io/badge/Download-APK-brightgreen.svg?style=for-the-badge&logo=android)](https://github.com/nirmalab-codes/audalimo-sms/releases/latest)
 
 **Quick Install:**
-1. Download the latest APK from [Releases](https://github.com/josephvoxone/audalimo-sms/releases)
+1. Download the latest APK from [Releases](https://github.com/nirmalab-codes/audalimo-sms/releases)
 2. Enable "Install from Unknown Sources" in Android settings
 3. Install the APK file
 4. Grant SMS permissions when prompted
@@ -89,7 +89,7 @@
 ### **Quick Setup**
 ```bash
 # Clone the repository
-git clone https://github.com/josephvoxone/audalimo-sms.git
+git clone https://github.com/nirmalab-codes/audalimo-sms.git
 cd audalimo-sms
 
 # Install dependencies
@@ -231,7 +231,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - 🌐 GitHub: [@josephvoxone](https://github.com/josephvoxone)
 - 📧 Email: joseph@nirmalab.com
 - 🏢 Company: [Nirmalab](https://nirmalab.com)
-- 💼 LinkedIn: [Joseph Voxone](https://linkedin.com/in/josephvoxone)
+- 💼 LinkedIn: [Joseph Shandy](https://www.linkedin.com/in/joseph-shandy/)
 
 ## 💝 **Support This Project**
 
@@ -249,14 +249,14 @@ If this SMS Webhook app helps your business or development workflow, consider su
 
 ## 🌟 **Star History**
 
-[![Star History Chart](https://api.star-history.com/svg?repos=josephvoxone/audalimo-sms&type=Date)](https://star-history.com/#josephvoxone/audalimo-sms&Date)
+[![Star History Chart](https://api.star-history.com/svg?repos=nirmalab-codes/audalimo-sms&type=Date)](https://star-history.com/#nirmalab-codes/audalimo-sms&Date)
 
 ## 📈 **Project Stats**
 
-![GitHub stars](https://img.shields.io/github/stars/josephvoxone/audalimo-sms?style=social)
-![GitHub forks](https://img.shields.io/github/forks/josephvoxone/audalimo-sms?style=social)
-![GitHub issues](https://img.shields.io/github/issues/josephvoxone/audalimo-sms)
-![GitHub pull requests](https://img.shields.io/github/issues-pr/josephvoxone/audalimo-sms)
+![GitHub stars](https://img.shields.io/github/stars/nirmalab-codes/audalimo-sms?style=social)
+![GitHub forks](https://img.shields.io/github/forks/nirmalab-codes/audalimo-sms?style=social)
+![GitHub issues](https://img.shields.io/github/issues/nirmalab-codes/audalimo-sms)
+![GitHub pull requests](https://img.shields.io/github/issues-pr/nirmalab-codes/audalimo-sms)
 
 ## 🔍 **Keywords**
 
