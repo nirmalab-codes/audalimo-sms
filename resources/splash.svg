@@ -1,86 +1,56 @@
-<svg width="1080" height="1920" viewBox="0 0 1080 1920" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <!-- Background gradient -->
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#007AFF;stop-opacity:1" />
-      <stop offset="50%" style="stop-color:#0051D0;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#003D9A;stop-opacity:1" />
+    <linearGradient id="darkGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#2D3748;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#1A202C;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#0F1419;stop-opacity:1" />
     </linearGradient>
-    <linearGradient id="iconGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#FFFFFF;stop-opacity:1" />
-      <stop offset="100%" style="stop-color:#E8F4FF;stop-opacity:1" />
+    <linearGradient id="orangeGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FFB366;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#FF8C00;stop-opacity:1" />
     </linearGradient>
     <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
-      <feGaussianBlur stdDeviation="8" result="coloredBlur"/>
-      <feMerge> 
-        <feMergeNode in="coloredBlur"/>
-        <feMergeNode in="SourceGraphic"/>
-      </feMerge>
-    </filter>
-    <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
-      <feDropShadow dx="0" dy="12" stdDeviation="24" flood-color="#000000" flood-opacity="0.3"/>
+      <feDropShadow dx="0" dy="0" stdDeviation="30" flood-color="#FF8C00" flood-opacity="0.4"/>
     </filter>
   </defs>
   
-  <!-- Background -->
-  <rect width="1080" height="1920" fill="url(#bgGradient)"/>
+  <!-- Dark background -->
+  <rect width="1024" height="1024" fill="url(#darkGradient)"/>
   
-  <!-- Decorative elements -->
-  <circle cx="200" cy="300" r="100" fill="#FFFFFF" opacity="0.05"/>
-  <circle cx="880" cy="500" r="150" fill="#FFFFFF" opacity="0.03"/>
-  <circle cx="100" cy="1400" r="80" fill="#FFFFFF" opacity="0.04"/>
-  <circle cx="950" cy="1600" r="120" fill="#FFFFFF" opacity="0.02"/>
+  <!-- Subtle geometric pattern -->
+  <g opacity="0.03">
+    <rect x="0" y="0" width="100" height="100" fill="url(#orangeGradient)"/>
+    <rect x="924" y="0" width="100" height="100" fill="url(#orangeGradient)"/>
+    <rect x="0" y="924" width="100" height="100" fill="url(#orangeGradient)"/>
+    <rect x="924" y="924" width="100" height="100" fill="url(#orangeGradient)"/>
+  </g>
   
-  <!-- Main icon container -->
-  <g transform="translate(290, 760)">
-    <!-- SMS Icon -->
-    <g transform="translate(0, 0)">
-      <!-- Main SMS bubble -->
-      <rect x="0" y="0" width="300" height="180" rx="40" fill="url(#iconGradient)" filter="url(#shadow)"/>
-      
-      <!-- SMS bubble tail -->
-      <path d="M40 180 L40 220 L80 180 Z" fill="url(#iconGradient)"/>
-      
-      <!-- SMS lines -->
-      <rect x="30" y="30" width="180" height="12" rx="6" fill="#007AFF" opacity="0.7"/>
-      <rect x="30" y="55" width="240" height="12" rx="6" fill="#007AFF" opacity="0.7"/>
-      <rect x="30" y="80" width="150" height="12" rx="6" fill="#007AFF" opacity="0.7"/>
-      <rect x="30" y="105" width="200" height="12" rx="6" fill="#007AFF" opacity="0.7"/>
-      <rect x="30" y="130" width="170" height="12" rx="6" fill="#007AFF" opacity="0.7"/>
+  <!-- Main icon centered -->
+  <g transform="translate(312, 312)">
+    <!-- Glow effect -->
+    <g filter="url(#glow)">
+      <!-- Main SMS bubble shape -->
+      <path d="M0 80 L80 0 L320 0 L400 80 L400 240 L320 320 L120 320 L80 360 L80 320 L0 240 Z" 
+            fill="url(#orangeGradient)" 
+            stroke="none"/>
     </g>
     
-    <!-- Webhook Arrow -->
-    <g transform="translate(350, 60)">
-      <!-- Arrow body -->
-      <rect x="0" y="25" width="120" height="30" rx="15" fill="url(#iconGradient)" filter="url(#shadow)"/>
-      
-      <!-- Arrow head -->
-      <path d="M120 10 L120 70 L170 40 Z" fill="url(#iconGradient)" filter="url(#shadow)"/>
-      
-      <!-- Motion dots -->
-      <circle cx="-30" cy="40" r="5" fill="#FFFFFF" opacity="0.6" filter="url(#glow)"/>
-      <circle cx="-50" cy="40" r="4" fill="#FFFFFF" opacity="0.4"/>
-      <circle cx="-70" cy="40" r="3" fill="#FFFFFF" opacity="0.2"/>
-    </g>
+    <!-- Inner dark area for contrast -->
+    <path d="M60 120 L120 60 L280 60 L340 120 L340 200 L280 260 L140 260 L100 300 L100 260 L60 200 Z" 
+          fill="url(#darkGradient)" 
+          opacity="0.7"/>
+    
+    <!-- Three dots inside bubble -->
+    <circle cx="160" cy="160" r="18" fill="url(#orangeGradient)"/>
+    <circle cx="200" cy="160" r="18" fill="url(#orangeGradient)"/>
+    <circle cx="240" cy="160" r="18" fill="url(#orangeGradient)"/>
   </g>
   
-  <!-- App title -->
-  <text x="540" y="1100" text-anchor="middle" fill="#FFFFFF" font-family="SF Pro Display, -apple-system, BlinkMacSystemFont, sans-serif" font-size="48" font-weight="700" filter="url(#glow)">SMS Webhook</text>
-  
-  <!-- Subtitle -->
-  <text x="540" y="1150" text-anchor="middle" fill="#FFFFFF" font-family="SF Pro Display, -apple-system, BlinkMacSystemFont, sans-serif" font-size="22" font-weight="400" opacity="0.8">Real-time SMS forwarding</text>
-  
-  <!-- Loading indicator -->
-  <g transform="translate(540, 1300)">
-    <circle cx="0" cy="0" r="30" stroke="#FFFFFF" stroke-width="4" fill="none" opacity="0.3"/>
-    <circle cx="0" cy="0" r="30" stroke="#FFFFFF" stroke-width="4" fill="none" stroke-dasharray="60 120" opacity="0.8">
-      <animateTransform attributeName="transform" type="rotate" values="0;360" dur="1.5s" repeatCount="indefinite"/>
-    </circle>
+  <!-- Subtle corner accents -->
+  <g opacity="0.1">
+    <path d="M0 0 L100 0 L0 100 Z" fill="url(#orangeGradient)"/>
+    <path d="M1024 0 L924 0 L1024 100 Z" fill="url(#orangeGradient)"/>
+    <path d="M0 1024 L100 1024 L0 924 Z" fill="url(#orangeGradient)"/>
+    <path d="M1024 1024 L924 1024 L1024 924 Z" fill="url(#orangeGradient)"/>
   </g>
-  
-  <!-- Bottom branding -->
-  <text x="540" y="1800" text-anchor="middle" fill="#FFFFFF" font-family="SF Pro Display, -apple-system, BlinkMacSystemFont, sans-serif" font-size="16" font-weight="500" opacity="0.6">Powered by Audalimo</text>
-  
-  <!-- Subtle pattern overlay -->
-  <rect width="1080" height="1920" fill="url(#bgGradient)" opacity="0.1"/>
 </svg> 

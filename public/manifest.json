@@ -1,6 +1,6 @@
 {
-  "short_name": "Ionic App",
-  "name": "My Ionic App",
+  "short_name": "SMS Webhook",
+  "name": "SMS Webhook",
   "icons": [
     {
       "src": "../icons/icon-48.webp",
@@ -47,6 +47,6 @@
   ],
   "start_url": ".",
   "display": "standalone",
-  "theme_color": "#ffffff",
-  "background_color": "#007AFF"
+  "theme_color": "#FF8C00",
+  "background_color": "#FF9500"
 }
