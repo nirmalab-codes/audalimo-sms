@@ -13,6 +13,8 @@ jobs:
   build:
     name: Build APK
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     
     steps:
     - name: Checkout code
@@ -100,4 +102,4 @@ jobs:
         draft: false
         prerelease: false
       env:
-        GITHUB_TOKEN: ${{ secrets.GIT_TOKEN }} 
+        GITHUB_TOKEN: ${{ github.token }} 
