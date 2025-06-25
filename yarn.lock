@@ -920,10 +920,20 @@
   resolved "https://registry.npmjs.org/@capacitor/status-bar/-/status-bar-7.0.1.tgz"
   integrity sha512-iDv3mXYo9CdxYRVwt3/pRyuk25p7Sn4GfaS/zMZyVIqTzsvKLCIIH3GdKK+ta+nsNcAVpCw/t5jFEBt1D18ctA==
 
+"@capawesome-team/capacitor-android-battery-optimization@^7.0.0":
+  version "7.0.0"
+  resolved "https://registry.yarnpkg.com/@capawesome-team/capacitor-android-battery-optimization/-/capacitor-android-battery-optimization-7.0.0.tgz#8c068c814b347a32e4be107ee06230fcc26268c6"
+  integrity sha512-an60fr+GxoT4+azWn9NGQOTmVuOB1J1NpzSAJ6CZ5kdJjG65T/gZyKIPIzLAHikMcXD4F+5ZLZ8MCCaWhWe4Dg==
+
 "@capawesome-team/capacitor-android-foreground-service@^7.0.1":
   version "7.0.1"
   resolved "https://registry.yarnpkg.com/@capawesome-team/capacitor-android-foreground-service/-/capacitor-android-foreground-service-7.0.1.tgz#f967fb91f9fe122531bcde8c2bf4204dd22c2f86"
   integrity sha512-JjeINYZ5SL81TV1D2WYIE2fmd1MlxHbIzB2gsNKINt9Ge3gkbdh7P/Urb3gSPPz4UWJoUFiCLFaHBRJvu+EP6Q==
+
+"@capawesome/capacitor-android-edge-to-edge-support@^7.2.2":
+  version "7.2.2"
+  resolved "https://registry.yarnpkg.com/@capawesome/capacitor-android-edge-to-edge-support/-/capacitor-android-edge-to-edge-support-7.2.2.tgz#830720988b9db29a5bf18db907c4b8b1f8545f97"
+  integrity sha512-AAqCFswAVlA6WX0iaVbMCEnt/2mNBZGmU3JbbFlqWAg61NCMxm8+JlmiNoG+6wf/6S/BWVRL8Ac3L9csaZH/8w==
 
 "@capawesome/capacitor-background-task@^7.0.1":
   version "7.0.1"

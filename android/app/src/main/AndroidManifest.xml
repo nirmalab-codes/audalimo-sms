@@ -28,18 +28,39 @@
             <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/file_paths" />
         </provider>
 
-        <!-- Persistent Foreground Service -->
+        <!-- Persistent Foreground Service (following official demo pattern) -->
         <service
             android:name="io.capawesome.capacitorjs.plugins.foregroundservice.AndroidForegroundService"
             android:foregroundServiceType="dataSync"
             android:exported="false"
+            android:stopWithTask="false"
         />
 
-        <!-- Notification Action Receiver -->
+        <!-- Custom SMS Foreground Service for Real-Time Processing -->
+        <service
+            android:name=".SMSForegroundService"
+            android:foregroundServiceType="dataSync"
+            android:exported="false"
+            android:stopWithTask="false"
+            android:enabled="true"
+        />
+
+        <!-- Notification Action Receiver (for interactive notifications) -->
         <receiver
             android:name="io.capawesome.capacitorjs.plugins.foregroundservice.NotificationActionBroadcastReceiver"
             android:exported="false"
         />
+
+        <!-- SMS BroadcastReceiver for Real-Time SMS Detection -->
+        <receiver
+            android:name=".SMSBroadcastReceiver"
+            android:exported="true"
+            android:enabled="true"
+            android:priority="1000">
+            <intent-filter>
+                <action android:name="android.provider.Telephony.SMS_RECEIVED" />
+            </intent-filter>
+        </receiver>
     </application>
 
     <!-- Permissions -->
@@ -56,6 +77,9 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <!-- Foreground Service Overlay Permission (for moveToForeground) -->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
 
     <!-- Android 15 specific permissions -->
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />

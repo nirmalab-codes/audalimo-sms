@@ -14,7 +14,9 @@ dependencies {
     implementation project(':capacitor-haptics')
     implementation project(':capacitor-keyboard')
     implementation project(':capacitor-status-bar')
+    implementation project(':capawesome-team-capacitor-android-battery-optimization')
     implementation project(':capawesome-team-capacitor-android-foreground-service')
+    implementation project(':capawesome-capacitor-android-edge-to-edge-support')
     implementation project(':capawesome-capacitor-background-task')
     implementation project(':capacitor-sms-inbox')
 

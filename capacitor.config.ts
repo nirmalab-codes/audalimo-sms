@@ -1,3 +1,5 @@
+/// <reference types="@capawesome/capacitor-android-edge-to-edge-support" />
+
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
@@ -34,6 +36,12 @@ const config: CapacitorConfig = {
       notificationTitle: 'SMS Webhook Monitor',
       notificationText: 'Monitoring SMS messages for webhook forwarding',
       enableForegroundService: true
+    },
+    EdgeToEdge: {
+      backgroundColor: "#FFF"
+    },
+    Keyboard: {
+      resizeOnFullScreen: false
     }
   },
   android: {

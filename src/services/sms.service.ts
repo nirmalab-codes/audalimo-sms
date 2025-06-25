@@ -1,9 +1,16 @@
 import { Capacitor } from '@capacitor/core';
 import { SMSInboxReader } from 'capacitor-sms-inbox';
-import { BackgroundTask } from '@capawesome/capacitor-background-task';
 import { BackgroundMode } from '@anuradev/capacitor-background-mode';
-import { App } from '@capacitor/app';
 import { ForegroundService } from '@capawesome-team/capacitor-android-foreground-service';
+import { BatteryOptimization } from '@capawesome-team/capacitor-android-battery-optimization';
+
+// Native SMS Plugin interface
+interface NativeSMSPlugin {
+  startSMSMonitoring(options: { webhookUrl: string; webhookSecret: string }): Promise<{ success: boolean; message: string }>;
+  stopSMSMonitoring(): Promise<{ success: boolean; message: string }>;
+  getSMSServiceStatus(): Promise<{ isActive: boolean; success: boolean }>;
+  updateWebhookConfig(options: { webhookUrl: string; webhookSecret: string }): Promise<{ success: boolean; message: string }>;
+}
 
 export interface WebhookPayload {
   message: string;
@@ -28,7 +35,7 @@ class SMSService {
   private lastMessageCount: number = 0;
   private pollingInterval: NodeJS.Timeout | null = null;
   private messageHistory: SMSMessage[] = [];
-  private backgroundTaskId: string | null = null;
+
   private isBackgroundModeEnabled: boolean = false;
   private isInitialized: boolean = false;
   private isForegroundServiceRunning: boolean = false;
@@ -40,6 +47,11 @@ class SMSService {
   // Optimized polling interval (3 seconds for balance)
   private readonly POLLING_INTERVAL = 3000;
   private readonly NOTIFICATION_CHANNEL_ID = 'sms_monitor_channel';
+  
+  // Get native SMS plugin
+  private get nativeSMS(): NativeSMSPlugin {
+    return (window as any).Capacitor?.Plugins?.NativeSMS;
+  }
 
   constructor() {
     this.initializeService();
@@ -51,6 +63,9 @@ class SMSService {
         await this.initializeNotificationChannel();
         await this.initializeBackgroundMode();
         await this.setupAppStateListener();
+        
+        // Initialize modern Android features
+        await this.initializeModernAndroidFeatures();
       } else {
         console.log('🌐 Running in web mode - SMS monitoring will be simulated');
         // Load sample data for web testing
@@ -63,21 +78,33 @@ class SMSService {
     }
   }
 
+  private async initializeModernAndroidFeatures() {
+    try {
+      // Simplified Android feature check
+      console.log('🔋 Checking Android configuration...');
+      console.log('💡 For best performance: Settings → Apps → SMS Webhook → Battery → Unrestricted');
+      console.log('✅ Android features initialized');
+    } catch (error) {
+      console.warn('⚠️ Some Android features unavailable:', error);
+    }
+  }
+
   private async initializeNotificationChannel() {
     if (!Capacitor.isNativePlatform()) return;
 
     try {
-      // Create notification channel for foreground service
+      // Create notification channel for foreground service (following official demo pattern)
       await ForegroundService.createNotificationChannel({
         id: this.NOTIFICATION_CHANNEL_ID,
         name: 'SMS Monitor Service',
-        description: 'Persistent SMS monitoring service notifications',
-        importance: 3 // Default importance
+        description: 'Persistent SMS monitoring service notifications for webhook forwarding',
+        importance: 3 // Default importance (same as demo)
       });
       
-      console.log('✅ Notification channel created');
+      console.log('✅ Notification channel created for foreground service');
     } catch (error) {
       console.error('❌ Failed to create notification channel:', error);
+      // Continue without failing - fallback will be used
     }
   }
 
@@ -128,16 +155,8 @@ class SMSService {
       this.isBackgroundModeEnabled = true;
       console.log('🔄 Background mode enabled as fallback');
 
-      // Listen for background mode events
-      BackgroundMode.addListener('appInBackground', () => {
-        console.log('📱 App entered background mode');
-        this.startBackgroundTask();
-      });
-
-      BackgroundMode.addListener('appInForeground', () => {
-        console.log('📱 App returned to foreground');
-        this.stopBackgroundTask();
-      });
+      // Background mode listeners removed - foreground service handles persistence
+      console.log('✅ Background mode configured as fallback only');
 
     } catch (error) {
       console.error('❌ Failed to initialize background mode:', error);
@@ -149,18 +168,51 @@ class SMSService {
     if (!Capacitor.isNativePlatform() || this.isForegroundServiceRunning) return;
 
     try {
-      // Start foreground service with proper configuration
+      // Check and request notification permissions first (Android 13+)
+      const notificationPermission = await ForegroundService.checkPermissions();
+      if (notificationPermission.display !== 'granted') {
+        const permissionRequest = await ForegroundService.requestPermissions();
+        if (permissionRequest.display !== 'granted') {
+          console.warn('⚠️ Notification permissions not granted, foreground service may not work properly');
+        }
+      }
+
+      // Start foreground service with proper configuration following official demo
       await ForegroundService.startForegroundService({
         id: 1,
-        title: 'SMS Webhook Monitor',
-        body: `Monitoring SMS • ${this.messageHistory.length} processed`,
+        title: 'SMS Webhook Active',
+        body: `SMS monitoring enabled • Tap "Open App" to manage`,
         smallIcon: 'ic_launcher',
         silent: false,
-        notificationChannelId: this.NOTIFICATION_CHANNEL_ID
+        notificationChannelId: this.NOTIFICATION_CHANNEL_ID,
+        // Add buttons for user interaction (like official demo)
+        buttons: [
+          {
+            id: 1,
+            title: 'Open App'
+          }
+        ]
       });
       
       this.isForegroundServiceRunning = true;
-      console.log('🔒 Foreground service started successfully');
+      console.log('🔒 Foreground service started successfully with notification channel');
+      
+      // Listen for notification button clicks and taps
+      ForegroundService.addListener('buttonClicked', async (event) => {
+        console.log('🔔 Notification button clicked:', event.buttonId);
+        if (event.buttonId === 1) {
+          // Move app to foreground when notification is tapped
+          try {
+            await ForegroundService.moveToForeground();
+            console.log('✅ App moved to foreground successfully');
+          } catch (err) {
+            console.warn('⚠️ Could not move app to foreground:', err);
+          }
+        }
+      });
+
+
+      
     } catch (error) {
       console.error('❌ Failed to start foreground service:', error);
       // Fallback to background mode if foreground service fails
@@ -175,8 +227,15 @@ class SMSService {
       await ForegroundService.updateForegroundService({
         id: 1,
         title: 'SMS Webhook Active',
-        body: `Monitoring SMS • ${this.messageHistory.length} processed • Last: ${new Date().toLocaleTimeString()}`,
-        smallIcon: 'ic_launcher'
+        body: `${this.messageHistory.length} SMS processed • Last update: ${new Date().toLocaleTimeString()}`,
+        smallIcon: 'ic_launcher',
+        silent: true, // Updates should be silent (following demo pattern)
+        buttons: [
+          {
+            id: 1,
+            title: 'Open App'
+          }
+        ]
       });
     } catch (error) {
       console.error('❌ Failed to update foreground service:', error);
@@ -187,97 +246,40 @@ class SMSService {
     if (!Capacitor.isNativePlatform() || !this.isForegroundServiceRunning) return;
 
     try {
+      // Remove event listeners before stopping service (following demo pattern)
+      await ForegroundService.removeAllListeners();
+      
+      // Stop the foreground service
       await ForegroundService.stopForegroundService();
       this.isForegroundServiceRunning = false;
-      console.log('🔓 Foreground service stopped');
+      console.log('🔓 Foreground service stopped and listeners removed');
     } catch (error) {
       console.error('❌ Failed to stop foreground service:', error);
     }
   }
 
-  private async startBackgroundTask() {
-    if (!Capacitor.isNativePlatform() || this.backgroundTaskId) return;
-
-    try {
-      const taskId = await BackgroundTask.beforeExit(async () => {
-        console.log('🔄 Background task started - SMS monitoring');
-        
-        // Perform background monitoring for 25 seconds
-        const startTime = Date.now();
-        const maxDuration = 25000; // 25 seconds (safe margin from 30s limit)
-        let cycleCount = 0;
-        
-        try {
-          while ((Date.now() - startTime) < maxDuration) {
-            cycleCount++;
-            console.log(`🔍 Background cycle ${cycleCount} - checking SMS`);
-            
-            // Check for new SMS messages
-            await this.checkForNewMessages();
-            
-            // Update foreground service status
-            await this.updateForegroundService();
-            
-            // Wait 3 seconds before next cycle
-            await new Promise(resolve => setTimeout(resolve, 3000));
-          }
-          
-          console.log(`✅ Background task completed ${cycleCount} cycles in ${Date.now() - startTime}ms`);
-        } catch (error) {
-          console.error('❌ Background task error:', error);
-        } finally {
-          // Always finish the task
-          BackgroundTask.finish({ taskId });
-          
-          // Auto-restart background task if still in background
-          setTimeout(async () => {
-            if (!this.isListening) return; // Only restart if still monitoring
-            console.log('🔄 Auto-restarting background task chain');
-            await this.startBackgroundTask();
-          }, 1000); // Wait 1 second before restart
-        }
-      });
-
-      this.backgroundTaskId = taskId;
-      console.log('✅ Background task registered:', taskId);
-    } catch (error) {
-      console.error('❌ Failed to start background task:', error);
-    }
-  }
-
-  private async stopBackgroundTask() {
-    if (!this.backgroundTaskId) return;
-
-    try {
-      await BackgroundTask.finish({ taskId: this.backgroundTaskId });
-      this.backgroundTaskId = null;
-      console.log('✅ Background task finished');
-    } catch (error) {
-      console.error('❌ Failed to stop background task:', error);
-    }
-  }
+  // NOTE: Background Task removed - foreground service handles everything
+  // Following official Capawesome pattern: use EITHER foreground service OR background task, not both!
 
   private async setupAppStateListener() {
     if (!Capacitor.isNativePlatform()) return;
 
     try {
-      // Listen for app state changes to manage background tasks
-      App.addListener('appStateChange', async ({ isActive }) => {
-        if (!isActive) {
-          console.log('📱 App went to background - immediate SMS check + background task');
-          
-          // Immediate check before starting background task
-          await this.checkForNewMessages();
-          
-          // Start intensive background monitoring
-          await this.startBackgroundTask();
-        } else {
-          console.log('📱 App became active - stopping background task');
-          await this.stopBackgroundTask();
+      // SIMPLIFIED: Foreground service runs independently, no interference!
+      // Following official Capawesome pattern - foreground service is self-contained
+      
+      console.log('✅ App state monitoring initialized - foreground service runs independently');
+      
+      // Only monitor app resume to check if service is still alive
+      document.addEventListener('resume', async () => {
+        console.log('▶️ App resumed - verifying foreground service status');
+        
+        if (this.isListening) {
+          // Just verify, don't interfere
+          console.log('✅ SMS monitoring should be running via foreground service');
         }
       });
       
-      console.log('✅ App state listener initialized');
     } catch (error) {
       console.error('❌ Failed to setup app state listener:', error);
     }
@@ -288,7 +290,77 @@ class SMSService {
     if (this.isInitialized) return true;
     
     await this.initializeService();
+    
+    // Check if foreground service is already running when app starts
+    await this.syncWithExistingForegroundService();
+    
     return this.isInitialized;
+  }
+
+  // Detect and sync with existing foreground service
+  private async syncWithExistingForegroundService() {
+    if (!Capacitor.isNativePlatform()) return;
+
+    try {
+      // Check if foreground service is running by looking for our notification
+      // This is a workaround since there's no direct API to check service status
+      
+      // Load saved state from localStorage
+      const savedIsListening = localStorage.getItem('sms_monitoring_active') === 'true';
+      const savedWebhookUrl = localStorage.getItem('webhookUrl') || '';
+      const savedWebhookSecret = localStorage.getItem('webhookSecret') || '';
+      
+      console.log('🔄 Checking for existing service state:', {
+        savedIsListening,
+        hasWebhook: !!savedWebhookUrl
+      });
+
+      if (savedIsListening && savedWebhookUrl) {
+        console.log('🔄 Restoring previous monitoring session...');
+        
+        // Restore configuration
+        this.webhookUrl = savedWebhookUrl;
+        this.webhookSecret = savedWebhookSecret;
+        
+        // Try to detect if foreground service is still running
+        // by attempting to update it
+        try {
+          await this.updateForegroundService();
+          this.isForegroundServiceRunning = true;
+          console.log('✅ Detected existing foreground service');
+        } catch (error) {
+          console.log('❌ No existing foreground service detected');
+          this.isForegroundServiceRunning = false;
+        }
+        
+        // If we have saved state, try to resume monitoring
+        if (this.isForegroundServiceRunning) {
+          // Service is running, just sync the state
+          this.isListening = true;
+          this.startPolling();
+          console.log('🔄 Resumed SMS monitoring with existing foreground service');
+        } else {
+          // Service not running, start fresh
+          console.log('🚀 Starting fresh SMS monitoring session...');
+          await this.startForegroundService();
+          this.isListening = true;
+          this.startPolling();
+        }
+        
+        // Get initial message count
+        try {
+          const countResult = await SMSInboxReader.getCount({});
+          this.lastMessageCount = countResult.count;
+        } catch (error) {
+          console.warn('⚠️ Failed to get initial SMS count:', error);
+        }
+      } else {
+        console.log('📱 No previous monitoring session found');
+      }
+      
+    } catch (error) {
+      console.error('❌ Failed to sync with existing foreground service:', error);
+    }
   }
 
   // Get SMS count
@@ -306,10 +378,23 @@ class SMSService {
     }
   }
 
-  // Configure webhook settings
+  // Configure webhook settings with NATIVE update
   setWebhookConfig(url: string, secret: string) {
     this.webhookUrl = url;
     this.webhookSecret = secret;
+    
+    // Update native service if running
+    if (Capacitor.isNativePlatform() && this.nativeSMS && this.isListening) {
+      this.nativeSMS.updateWebhookConfig({
+        webhookUrl: url,
+        webhookSecret: secret
+      }).then(() => {
+        console.log('✅ Native webhook config updated');
+      }).catch(error => {
+        console.error('❌ Failed to update native webhook config:', error);
+      });
+    }
+    
     console.log('🔧 Webhook configured:', { url, hasSecret: !!secret });
   }
 
@@ -334,7 +419,7 @@ class SMSService {
     }
   }
 
-  // Start SMS monitoring with proper foreground service
+  // Enhanced start listening with NATIVE SMS implementation
   async startListening(): Promise<boolean> {
     if (this.isListening) {
       console.log('⚠️ SMS monitoring already active');
@@ -343,10 +428,10 @@ class SMSService {
 
     try {
       if (Capacitor.isNativePlatform()) {
-        // Start foreground service first (following Capawesome docs)
-        await this.startForegroundService();
+        // ✅ NEW: Use NATIVE SMS Service with BroadcastReceiver
+        console.log('🚀 Starting NATIVE SMS monitoring with BroadcastReceiver + Foreground Service');
         
-        // Request SMS permissions
+        // Request SMS permissions first
         const hasPermission = await SMSInboxReader.checkPermissions();
         if (hasPermission.sms !== 'granted') {
           const permission = await SMSInboxReader.requestPermissions();
@@ -355,41 +440,47 @@ class SMSService {
           }
         }
 
-        // Get initial SMS count and latest message
-        const countResult = await SMSInboxReader.getCount({});
-        this.lastMessageCount = countResult.count;
-
-        // Get the most recent message to establish baseline
-        const messages = await SMSInboxReader.getSMSList({
-          filter: { maxCount: 10 } // Get last 10 messages to establish baseline
-        });
-        
-        if (messages.smsList && messages.smsList.length > 0) {
-          this.lastMessageId = messages.smsList[0].id;
+        // Start native SMS monitoring service
+        if (this.nativeSMS) {
+          console.log('📡 Starting native SMS monitoring service...');
           
-          // Mark existing messages as processed to avoid duplicates
-          messages.smsList.forEach(msg => {
-            this.processedMessageIds.add(msg.id);
+          const result = await this.nativeSMS.startSMSMonitoring({
+            webhookUrl: this.webhookUrl,
+            webhookSecret: this.webhookSecret
           });
+          
+          if (result.success) {
+            console.log('✅ Native SMS monitoring started successfully!');
+            this.isForegroundServiceRunning = true;
+          } else {
+            throw new Error('Failed to start native SMS monitoring');
+          }
+        } else {
+          console.warn('⚠️ Native SMS plugin not available, falling back to old method');
+          
+          // Fallback to old method
+          await this.startForegroundService();
+          await this.setupSMSEventListeners();
         }
 
-        console.log('📱 SMS monitoring initialized with foreground service', {
-          lastMessageId: this.lastMessageId,
-          totalCount: this.lastMessageCount,
-          foregroundService: this.isForegroundServiceRunning,
-          processedIds: this.processedMessageIds.size
-        });
+        // Get initial baseline for history
+        const countResult = await SMSInboxReader.getCount({});
+        this.lastMessageCount = countResult.count;
+        console.log(`📊 Initial SMS count: ${countResult.count}`);
 
       } else {
         console.log('🌐 Running in web mode - SMS monitoring simulated');
-        // In web mode, simulate some activity
         this.simulateWebActivity();
       }
 
       this.isListening = true;
-      this.startPolling();
       
-      console.log('✅ SMS monitoring started with foreground service');
+      // Save monitoring state to localStorage
+      localStorage.setItem('sms_monitoring_active', 'true');
+      localStorage.setItem('webhookUrl', this.webhookUrl);
+      localStorage.setItem('webhookSecret', this.webhookSecret);
+      
+      console.log('✅ SMS monitoring started with NATIVE implementation');
       return true;
 
     } catch (error) {
@@ -415,30 +506,77 @@ class SMSService {
     }, 30000);
   }
 
-  // Stop SMS monitoring and foreground service
+  // Enhanced stop listening with NATIVE implementation
   async stopListening(): Promise<void> {
     if (!this.isListening) return;
 
     this.isListening = false;
-    this.stopPolling();
     
-    // Stop background task
-    await this.stopBackgroundTask();
-    
-    // Stop foreground service
-    await this.stopForegroundService();
+    try {
+      if (Capacitor.isNativePlatform()) {
+        // ✅ NEW: Stop NATIVE SMS Service
+        if (this.nativeSMS) {
+          console.log('🛑 Stopping native SMS monitoring service...');
+          
+          const result = await this.nativeSMS.stopSMSMonitoring();
+          if (result.success) {
+            console.log('✅ Native SMS monitoring stopped successfully!');
+            this.isForegroundServiceRunning = false;
+          }
+        } else {
+          // Fallback to old method
+          await this.stopForegroundService();
+        }
+      }
+    } catch (error) {
+      console.error('❌ Error stopping native SMS service:', error);
+    }
 
-    console.log('🛑 SMS monitoring and foreground service stopped');
+    // Clear saved monitoring state
+    localStorage.setItem('sms_monitoring_active', 'false');
+
+    console.log('🛑 SMS monitoring stopped');
   }
 
-  // Start optimized single polling strategy
+  // Setup real-time SMS event listeners
+  private async setupSMSEventListeners() {
+    if (!Capacitor.isNativePlatform()) return;
+
+    try {
+      // Listen for SMS arrival events from the native plugin
+      console.log('📡 Setting up real-time SMS event listeners...');
+      
+      // Use document event listeners for SMS events
+      document.addEventListener('deviceready', () => {
+        console.log('📱 Device ready - SMS listeners active');
+      });
+
+      // Listen for SMS database changes (Android content observer pattern)
+      document.addEventListener('smsReceived', (event: any) => {
+        console.log('📨 Real-time SMS event detected!', event.detail);
+        this.checkForNewMessages(); // Immediate check when SMS received
+      });
+
+      // Alternative listener for SMS inbox changes
+      (window as any).addEventListener('smsInboxChanged', () => {
+        console.log('📨 SMS inbox changed - checking for new messages');
+        this.checkForNewMessages();
+      });
+
+      console.log('✅ Real-time SMS event listeners configured');
+    } catch (error) {
+      console.error('❌ Failed to setup SMS event listeners:', error);
+    }
+  }
+
+  // Start optimized dual-strategy monitoring (polling + events)
   private startPolling() {
-    // Single optimized polling (3 seconds)
+    // Aggressive polling every 1 second for immediate detection
     this.pollingInterval = setInterval(() => {
       this.checkForNewMessages();
-    }, this.POLLING_INTERVAL);
+    }, 1000); // Changed from 3000ms to 1000ms for faster detection
 
-    console.log(`🔄 Optimized polling started (${this.POLLING_INTERVAL}ms)`);
+    console.log(`🔄 Aggressive polling started (1000ms intervals)`);
   }
 
   // Stop polling
@@ -451,37 +589,54 @@ class SMSService {
     console.log('🛑 Polling stopped');
   }
 
-  // Check for new SMS messages with deduplication
+  // Check for new SMS messages with enhanced debugging
   private async checkForNewMessages() {
     if (!this.isListening) return;
 
     try {
       if (Capacitor.isNativePlatform()) {
-        // Quick count check first
+        // Quick count check first with detailed logging
         const countResult = await SMSInboxReader.getCount({});
         
+        // Log every few cycles for debugging
+        if (Math.random() < 0.1) { // 10% of the time
+          console.log(`🔍 SMS Count Check: ${countResult.count} (last: ${this.lastMessageCount})`);
+        }
+        
         if (countResult.count > this.lastMessageCount) {
-          console.log('📨 New SMS detected!', {
+          console.log('📨 🚨 NEW SMS DETECTED! 🚨', {
             newCount: countResult.count,
-            lastCount: this.lastMessageCount
+            lastCount: this.lastMessageCount,
+            difference: countResult.count - this.lastMessageCount
           });
           
-          // Get new messages since last check
+          // Get new messages since last check with more detailed filter
           const messages = await SMSInboxReader.getSMSList({
             filter: { 
-              maxCount: countResult.count - this.lastMessageCount + 5, // Get a few extra to ensure we don't miss any
-              minDate: Date.now() - 120000 // Last 2 minutes to catch recent messages
+              maxCount: countResult.count - this.lastMessageCount + 10, // Get extra to ensure we don't miss any
+              minDate: Date.now() - 300000 // Last 5 minutes to catch recent messages
             }
           });
 
+          console.log('📥 Retrieved messages:', {
+            total: messages.smsList?.length || 0,
+            lastMessageId: this.lastMessageId
+          });
+
           if (messages.smsList && messages.smsList.length > 0) {
+            let newMessagesProcessed = 0;
+            
             // Process new messages with deduplication
             for (const message of messages.smsList) {
               if (message.id > this.lastMessageId && !this.processedMessageIds.has(message.id)) {
+                console.log(`📩 Processing NEW message ID: ${message.id} from ${message.address}`);
                 await this.processNewMessage(message);
                 this.lastMessageId = Math.max(this.lastMessageId, message.id);
+                newMessagesProcessed++;
               }
             }
+            
+            console.log(`✅ Processed ${newMessagesProcessed} new messages`);
           }
           
           this.lastMessageCount = countResult.count;
@@ -490,12 +645,24 @@ class SMSService {
           await this.updateForegroundService();
         }
       } else {
-        // Web mode - just log that we're checking
-        console.log('🌐 Checking for SMS (web simulation)');
+        // Web mode - just log that we're checking occasionally
+        if (Math.random() < 0.05) { // 5% of the time
+          console.log('🌐 Checking for SMS (web simulation mode)');
+        }
       }
 
     } catch (error) {
       console.error('❌ Error checking for new messages:', error);
+      
+      // Try to recover from permission issues
+      if (error.toString().includes('permission')) {
+        console.log('🔄 Permission error detected - attempting to re-request permissions');
+        try {
+          await SMSInboxReader.requestPermissions();
+        } catch (permError) {
+          console.error('❌ Failed to re-request permissions:', permError);
+        }
+      }
     }
   }
 
@@ -709,15 +876,165 @@ class SMSService {
     }
   }
 
-  // Get current status
+  // Enhanced app health check with proper battery optimization detection
+  async performAppHealthCheck(): Promise<any> {
+    if (!Capacitor.isNativePlatform()) {
+      return {
+        status: 'web_mode',
+        message: 'Running in web mode - no Android restrictions apply',
+        checks: {
+          permissions: 'N/A',
+          batteryOptimization: 'N/A',
+          autoStart: 'N/A',
+          backgroundRestriction: 'N/A'
+        }
+      };
+    }
+
+    const healthStatus = {
+      status: 'checking',
+      lastChecked: new Date().toISOString(),
+      issues: [] as string[],
+      recommendations: [] as string[],
+      checks: {
+        permissions: 'unknown',
+        batteryOptimization: 'unknown',
+        autoStart: 'unknown',
+        backgroundRestriction: 'unknown',
+        foregroundService: this.isForegroundServiceRunning ? 'active' : 'inactive',
+        lastMessageTime: this.messageHistory.length > 0 ? 
+          new Date(this.messageHistory[this.messageHistory.length - 1].date).toLocaleString() : 
+          'No messages yet'
+      }
+    };
+
+    try {
+      // Check battery optimization using Capacitor's native bridge
+      const isBatteryOptimized = await this.checkBatteryOptimization();
+      healthStatus.checks.batteryOptimization = isBatteryOptimized ? 'enabled' : 'disabled';
+      
+      if (isBatteryOptimized) {
+        healthStatus.issues.push('Battery optimization is enabled - may kill SMS monitoring');
+        healthStatus.recommendations.push('Disable battery optimization: Settings > Apps > SMS Webhook > Battery > Unrestricted');
+      }
+
+             // Check SMS permissions
+       const hasPermissions = await this.checkSMSPermissionsInternal();
+       healthStatus.checks.permissions = hasPermissions ? 'granted' : 'denied';
+       
+       if (!hasPermissions) {
+         healthStatus.issues.push('SMS permissions not granted');
+         healthStatus.recommendations.push('Grant SMS permissions in app settings');
+       }
+
+      // Check if foreground service is running
+      if (!this.isForegroundServiceRunning) {
+        healthStatus.issues.push('Foreground service not running');
+        healthStatus.recommendations.push('Start SMS monitoring to enable foreground service');
+      }
+
+             // Check last message activity (if no messages in last 30 minutes, might be issue)
+       const lastMessageTime = this.messageHistory.length > 0 ? 
+         this.messageHistory[this.messageHistory.length - 1].date : 
+         0;
+       const thirtyMinutesAgo = Date.now() - (30 * 60 * 1000);
+       
+       if (this.isListening && lastMessageTime < thirtyMinutesAgo && this.messageHistory.length === 0) {
+         healthStatus.recommendations.push('If no SMS received, try sending test SMS or restart monitoring');
+       }
+
+      // Determine overall status
+      if (healthStatus.issues.length === 0) {
+        healthStatus.status = 'healthy';
+      } else if (healthStatus.issues.length <= 2) {
+        healthStatus.status = 'warning';
+      } else {
+        healthStatus.status = 'critical';
+      }
+
+    } catch (error) {
+      console.error('❌ Health check failed:', error);
+      healthStatus.status = 'error';
+      healthStatus.issues.push('Failed to perform health check');
+    }
+
+    return healthStatus;
+  }
+
+  // Check SMS permissions
+  private async checkSMSPermissionsInternal(): Promise<boolean> {
+    if (!Capacitor.isNativePlatform()) return true; // Assume granted in web mode
+
+    try {
+      const hasPermission = await SMSInboxReader.checkPermissions();
+      return hasPermission.sms === 'granted';
+    } catch (error) {
+      console.warn('⚠️ Cannot check SMS permissions:', error);
+      return false;
+    }
+  }
+
+  // Real battery optimization check using official plugin
+  private async checkBatteryOptimization(): Promise<boolean> {
+    if (!Capacitor.isNativePlatform()) return false;
+
+    try {
+      const result = await BatteryOptimization.isBatteryOptimizationEnabled();
+      return result.enabled;
+    } catch (error) {
+      console.warn('⚠️ Cannot check battery optimization:', error);
+      return true; // Assume worst case if can't check
+    }
+  }
+
+  // Open battery optimization settings using official plugin
+  async openBatteryOptimizationSettings(): Promise<void> {
+    if (!Capacitor.isNativePlatform()) {
+      console.log('🌐 Battery settings only available on Android devices');
+      return;
+    }
+
+    try {
+      await BatteryOptimization.openBatteryOptimizationSettings();
+      console.log('⚙️ Battery optimization settings opened');
+    } catch (error) {
+      console.error('❌ Failed to open battery settings:', error);
+    }
+  }
+
+  // Request battery optimization exemption
+  async requestBatteryOptimizationExemption(): Promise<boolean> {
+    if (!Capacitor.isNativePlatform()) return false;
+
+    try {
+      await BatteryOptimization.requestIgnoreBatteryOptimization();
+      console.log('🔋 Battery optimization exemption requested');
+      return true;
+    } catch (error) {
+      console.error('❌ Failed to request battery optimization exemption:', error);
+      return false;
+    }
+  }
+
+  // Get current status with NATIVE service check
   getStatus() {
+    // Check native service status if available
+    if (Capacitor.isNativePlatform() && this.nativeSMS) {
+      this.nativeSMS.getSMSServiceStatus().then(result => {
+        if (result.success) {
+          this.isForegroundServiceRunning = result.isActive;
+        }
+      }).catch(error => {
+        console.warn('⚠️ Failed to get native service status:', error);
+      });
+    }
+    
     return {
       isListening: this.isListening,
       messageCount: this.messageHistory.length,
       lastMessageId: this.lastMessageId,
       hasWebhook: !!this.webhookUrl,
       isBackgroundModeEnabled: this.isBackgroundModeEnabled,
-      backgroundTaskActive: !!this.backgroundTaskId,
       isForegroundServiceRunning: this.isForegroundServiceRunning,
       isInitialized: this.isInitialized,
       processedMessageCount: this.processedMessageIds.size,

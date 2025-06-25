@@ -78,7 +78,7 @@ const Settings: React.FC = () => {
       let message = `Service Status:\n\n`;
       message += `• SMS Monitoring: ${status.isListening ? '✅ Active' : '❌ Inactive'}\n`;
       message += `• Background Mode: ${status.isBackgroundModeEnabled ? '✅ Enabled' : '❌ Disabled'}\n`;
-      message += `• Background Task: ${status.backgroundTaskActive ? '✅ Running' : '❌ Idle'}\n`;
+      message += `• Foreground Service: ${status.isForegroundServiceRunning ? '✅ Running' : '❌ Idle'}\n`;
       message += `• Messages Processed: ${status.messageCount}\n`;
       message += `• Webhook: ${status.hasWebhook ? '✅ Configured' : '❌ Not Set'}`;
       
