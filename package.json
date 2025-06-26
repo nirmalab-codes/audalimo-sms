@@ -2,7 +2,7 @@
   "name": "sms-webhook-app",
   "displayName": "SMS Webhook",
   "description": "Professional SMS to Webhook Forwarder - Real-time SMS forwarding with persistent background monitoring, deduplication, and VPN-like foreground service for Android",
-  "version": "1.0.0",
+  "version": "1.0.6",
   "author": {
     "name": "Joseph",
     "email": "joseph@nirmalab.com",
